@@ -6,6 +6,14 @@ Outfred is a modern fashion discovery platform built with React, TypeScript, and
 
 # Recent Changes
 
+## November 4, 2025 - Merchant Import Security & Statistics Improvements
+- **Merchant import security:** Merchants now automatically import products to their own store only - removed merchant selector for merchant-role users and added server-side enforcement in startImport function
+- **Product status management:** Added isActive field to all products (defaults to true), with toggle switch in Admin product dialog for easy activation/deactivation
+- **Stock management:** Added Stock field to product management forms in Admin panel
+- **Import UX improvements:** Clarified that import URL should be a collection/category page (e.g., your-store.com/collections/all) with bilingual instructions
+- **Real statistics:** Replaced random/mock data in MerchantDashboard with real metrics - product views aggregated from actual data, page views fetched from API
+- **API enhancements:** Added merchantsApi.getUserMerchant() method to fetch current user's merchant store
+
 ## November 4, 2025 - Admin Panel Enhancements & AI Configuration
 - **Product filtering & bulk operations:** Added merchant/store dropdown filter, product checkboxes, "Select All" and "Delete Selected" buttons in admin panel
 - **AI Settings page:** Created AdminAISettings.tsx with full control over AI provider (OpenAI/Anthropic/Custom), model selection, API key, temperature, max tokens, and system prompts
