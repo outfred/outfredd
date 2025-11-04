@@ -6,6 +6,16 @@ Outfred is a modern fashion discovery platform built with React, TypeScript, and
 
 # Recent Changes
 
+## November 4, 2025 - Critical Bug Fixes & Feature Enhancements
+- **Product Import Fixed:** All imported products now default to `isActive: true`, `status: 'active'`, and `views: 0`
+- **Stock Handling Improved:** Fixed stock parsing to preserve zero-stock items using `Number.isFinite()` instead of `||` operator
+- **Merchant Statistics Enhanced:** Upgraded MerchantDashboardNew to use `/merchant-stats` endpoint for accurate view counts
+- **Top Products Section:** Added "Most Viewed Products" section in merchant dashboard showing top 5 products by views
+- **NaN Prevention:** Fixed merchant stats to use nullish coalescing (`?? 0`) preventing NaN totals when backend omits fields
+- **AI Image Search:** Implemented real AI-powered image search using GPT-4 Vision to analyze uploaded images, extract dominant colors, and find matching products
+- **Search Improvements:** Image search now uses `analyzeProductImage` to provide color-based product recommendations
+- **Color Scheme:** Confirmed unified burgundy/maroon color palette (#3B1728, #8B4665) in styles/globals.css
+
 ## November 4, 2025 - Major Feature Addition: Admin Management System
 - **NEW PAGES CREATED:**
   - `AccountSettings.tsx` - User account management page with email verification, password reset, and OAuth (Google/Facebook) placeholders

@@ -88,11 +88,14 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
       );
       if (response.ok) {
         const data = await response.json();
+        const pageViews = data.totalPageViews ?? 0;
+        const productViews = data.totalProductViews ?? 0;
+        
         setStats(prev => ({
           ...prev,
-          totalViews: data.totalPageViews + data.totalProductViews,
-          totalSales: Math.floor((data.totalProductViews || 0) * 0.15),
-          revenue: Math.floor((data.totalProductViews || 0) * 164),
+          totalViews: pageViews + productViews,
+          totalSales: Math.floor(productViews * 0.15),
+          revenue: Math.floor(productViews * 164),
         }));
         setTopProducts(data.topProducts || []);
       }
