@@ -234,10 +234,40 @@ export const smtpApi = {
 // Subscriptions API
 // =============================================================================
 
+const defaultSubscriptionPlans = [
+  {
+    id: 'free',
+    name: 'Free',
+    name_ar: 'مجاني',
+    price: 0,
+    searches_limit: 5,
+    features: ['5 searches per month', 'Basic support'],
+    features_ar: ['5 عمليات بحث شهرياً', 'دعم أساسي']
+  },
+  {
+    id: 'basic',
+    name: 'Basic',
+    name_ar: 'أساسي',
+    price: 29,
+    searches_limit: 100,
+    features: ['100 searches per month', 'Priority support', 'Advanced filters'],
+    features_ar: ['100 عملية بحث شهرياً', 'دعم أولوية', 'فلاتر متقدمة']
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    name_ar: 'احترافي',
+    price: 99,
+    searches_limit: 999999,
+    features: ['Unlimited searches', '24/7 support', 'All features', 'API access'],
+    features_ar: ['بحث غير محدود', 'دعم 24/7', 'جميع المزايا', 'وصول API']
+  }
+];
+
 export const subscriptionsApi = {
   async getAll(type?: 'user' | 'merchant') {
     const query = type ? `?type=${type}` : '';
-    return apiRequest(`/admin/subscriptions${query}`);
+    return apiRequest(`/admin/subscriptions${query}`, {}, 'admin_subscription_plans', defaultSubscriptionPlans);
   },
   
   async update(id: string, data: any) {

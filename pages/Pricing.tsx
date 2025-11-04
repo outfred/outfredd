@@ -25,9 +25,47 @@ export const Pricing: React.FC = () => {
 
   const loadPlans = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/subscriptions/plans`);
-      const data = await response.json();
-      setPlans(data.plans || []);
+      const defaultPlans = [
+        {
+          id: 'free',
+          name: 'Free',
+          name_ar: 'مجاني',
+          price: 0,
+          searches_limit: 5,
+          features: ['5 searches per month', 'Basic support'],
+          features_ar: ['5 عمليات بحث شهرياً', 'دعم أساسي']
+        },
+        {
+          id: 'basic',
+          name: 'Basic',
+          name_ar: 'أساسي',
+          price: 29,
+          searches_limit: 100,
+          features: ['100 searches per month', 'Priority support', 'Advanced filters'],
+          features_ar: ['100 عملية بحث شهرياً', 'دعم أولوية', 'فلاتر متقدمة']
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          name_ar: 'احترافي',
+          price: 99,
+          searches_limit: 999999,
+          features: ['Unlimited searches', '24/7 support', 'All features', 'API access'],
+          features_ar: ['بحث غير محدود', 'دعم 24/7', 'جميع المزايا', 'وصول API']
+        }
+      ];
+
+      try {
+        const response = await fetch(`${API_URL}/api/subscriptions/plans`);
+        if (response.ok) {
+          const data = await response.json();
+          setPlans(data.plans || defaultPlans);
+        } else {
+          setPlans(defaultPlans);
+        }
+      } catch {
+        setPlans(defaultPlans);
+      }
     } catch (error) {
       console.error('Failed to load plans:', error);
     }
@@ -36,16 +74,42 @@ export const Pricing: React.FC = () => {
   const loadCurrentPlan = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) return;
+
       const response = await fetch(`${API_URL}/api/subscriptions/current`, {
         headers: {
-          'X-Access-Token': token || '',
+          'X-Access-Token': token,
           'Authorization': `Bearer ${publicAnonKey}`,
         },
       });
-      const data = await response.json();
-      setCurrentPlan(data.subscription);
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentPlan(data.subscription);
+      } else {
+        const userData = localStorage.getItem(`user_${user?.id}`);
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          setCurrentPlan({
+            plan: parsed.subscription_plan || 'free',
+            searches_count: parsed.searches_count || 0,
+            searches_limit: parsed.searches_limit || 5
+          });
+        }
+      }
     } catch (error) {
       console.error('Failed to load current plan:', error);
+      const userData = localStorage.getItem(`user_${user?.id}`);
+      if (userData) {
+        try {
+          const parsed = JSON.parse(userData);
+          setCurrentPlan({
+            plan: parsed.subscription_plan || 'free',
+            searches_count: parsed.searches_count || 0,
+            searches_limit: parsed.searches_limit || 5
+          });
+        } catch {}
+      }
     }
   };
 
