@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
-import { Globe, Menu, X, User, LogOut, ShieldCheck, Store } from 'lucide-react';
+import { Globe, Menu, X, User, LogOut, ShieldCheck, Store, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import logo from '../assets/dc93d49ca6f110dfea003149eea06295a54cf5b2.png';
 
@@ -86,6 +86,16 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage }) => {
                     {t('adminPanel')}
                   </Button>
                 )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNavigate('notifications')}
+                  className="gap-2 relative"
+                  title={language === 'ar' ? 'الإشعارات' : 'Notifications'}
+                >
+                  <Bell className="w-4 h-4" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

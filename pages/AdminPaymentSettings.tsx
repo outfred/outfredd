@@ -140,12 +140,21 @@ export const AdminPaymentSettings: React.FC = () => {
       
       const result = await sendEmail(testEmail, template.subject, template.body);
       
+      const currentUser = JSON.parse(localStorage.getItem('accessToken') || '{}');
+      const userId = currentUser?.userId;
+      
       if (result.success) {
         toast.success(
           language === 'ar' 
             ? '✅ تم إرسال الرسالة بنجاح! تحقق من بريدك الإلكتروني.' 
             : '✅ Email sent successfully! Check your inbox.'
         );
+        
+        if (userId) {
+          const { notificationService } = await import('../utils/notificationService');
+          notificationService.sendSMTPTestNotification(userId, language, true);
+        }
+        
         setShowTestEmailDialog(false);
         setTestEmail('');
       } else {
@@ -154,6 +163,11 @@ export const AdminPaymentSettings: React.FC = () => {
             ? `❌ فشل الإرسال: ${result.error}` 
             : `❌ Failed: ${result.error}`
         );
+        
+        if (userId) {
+          const { notificationService } = await import('../utils/notificationService');
+          notificationService.sendSMTPTestNotification(userId, language, false);
+        }
       }
     } catch (error) {
       console.error('Failed to send test email:', error);

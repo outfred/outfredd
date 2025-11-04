@@ -138,6 +138,9 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) =>
 
       localStorage.removeItem(`reset_code_${email}`);
 
+      const { notificationService } = await import('../utils/notificationService');
+      notificationService.sendPasswordResetNotification(userId, language);
+
       toast.success(language === 'ar' ? '🎉 تم تغيير كلمة المرور بنجاح!' : '🎉 Password reset successfully!');
       
       setTimeout(() => {

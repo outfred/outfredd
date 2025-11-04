@@ -80,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.register({ email, password, name });
       
       const { generateVerificationCode, sendEmail, emailTemplates } = await import('../utils/emailTemplates');
+      const { notificationService } = await import('../utils/notificationService');
       const verificationCode = generateVerificationCode();
       
       localStorage.setItem(`verification_code_${email}`, JSON.stringify({
@@ -99,6 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('📧 Welcome & verification emails sent (code:', verificationCode, ')');
       
       await login(email, password);
+      
+      if (response.user?.id) {
+        notificationService.sendWelcomeNotification(response.user.id, name, currentLang);
+        notificationService.sendVerificationNotification(response.user.id, currentLang, verificationCode);
+      }
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;

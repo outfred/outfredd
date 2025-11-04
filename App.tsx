@@ -29,6 +29,7 @@ import { MerchantStorePage } from './pages/MerchantStorePage';
 import { OutfitGenerator } from './pages/OutfitGenerator';
 import { Pricing } from './pages/Pricing';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { Notifications } from './pages/Notifications';
 import { Toaster } from './components/ui/sonner';
 
 type Page = 
@@ -40,6 +41,7 @@ type Page =
   | 'login' 
   | 'register' 
   | 'forgot-password'
+  | 'notifications'
   | 'admin'
   | 'admin-site-settings'
   | 'admin-ai-settings'
@@ -207,6 +209,8 @@ export default function App() {
         return <Auth mode="register" onSuccess={() => handleNavigate('home')} />;
       case 'forgot-password':
         return <ForgotPassword onNavigate={handleNavigate} />;
+      case 'notifications':
+        return <Notifications />;
       case 'account-settings':
         return <AccountSettings />;
       case 'admin':
