@@ -28,6 +28,10 @@ export const Admin: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
+  // Product filtering and bulk operations
+  const [filterMerchantId, setFilterMerchantId] = useState<string>('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  
   // Design Settings State
   const [designSettings, setDesignSettings] = useState({
     primaryColor: '#3B1728',
@@ -335,6 +339,46 @@ export const Admin: React.FC = () => {
       toast.error('Failed to delete product');
     }
   };
+
+  const handleBulkDelete = async () => {
+    if (selectedProducts.length === 0) {
+      toast.error('No products selected');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)?`)) return;
+
+    try {
+      await Promise.all(selectedProducts.map(id => productsApi.delete(id)));
+      toast.success(`${selectedProducts.length} product(s) deleted successfully`);
+      setSelectedProducts([]);
+      loadProducts();
+    } catch (error) {
+      console.error('Error deleting products:', error);
+      toast.error('Failed to delete some products');
+    }
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleAllProducts = () => {
+    const filteredProductIds = filteredProducts.map(p => p.id);
+    if (selectedProducts.length === filteredProductIds.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(filteredProductIds);
+    }
+  };
+
+  const filteredProducts = filterMerchantId
+    ? products.filter(p => p.merchantId === filterMerchantId)
+    : products;
 
   const handleSaveDesignSettings = async () => {
     try {

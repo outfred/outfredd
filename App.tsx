@@ -9,6 +9,7 @@ import { Account } from './pages/Account';
 import { JoinMerchant } from './pages/JoinMerchant';
 import { Auth } from './pages/Auth';
 import { Admin } from './pages/Admin';
+import { AdminSiteSettings } from './pages/AdminSiteSettings';
 import { StaticPages } from './pages/StaticPages';
 import { Debug } from './pages/Debug';
 import { MerchantImport } from './pages/MerchantImport';
@@ -30,6 +31,7 @@ type Page =
   | 'login' 
   | 'register' 
   | 'admin'
+  | 'admin-site-settings'
   | 'about'
   | 'privacy'
   | 'contact'
@@ -136,6 +138,8 @@ export default function App() {
         return <Auth mode="register" onSuccess={() => handleNavigate('home')} />;
       case 'admin':
         return <Admin />;
+      case 'admin-site-settings':
+        return <AdminSiteSettings onNavigate={handleNavigate} />;
       case 'import':
         return <MerchantImport />;
       case 'merchant-dashboard':
