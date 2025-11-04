@@ -1,348 +1,403 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Separator } from '../components/ui/separator';
-import { Settings, Upload, Save, Eye, Globe, FileText } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Settings, Globe, Image as ImageIcon, Link as LinkIcon, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface AdminSiteSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
-export const AdminSiteSettings: React.FC<AdminSiteSettingsProps> = ({ onNavigate }) => {
+export const AdminSiteSettings: React.FC = () => {
   const { language } = useLanguage();
-  const isRTL = language === 'ar';
-
-  const [siteLogo, setSiteLogo] = useState('');
-  const [siteName, setSiteName] = useState('Outfred');
-  const [siteTagline, setSiteTagline] = useState('');
   
-  const [headerLinks, setHeaderLinks] = useState([
-    { name: 'Home', nameAr: 'الرئيسية', url: '/' },
-    { name: 'Products', nameAr: 'المنتجات', url: '/products' },
-    { name: 'Merchants', nameAr: 'المتاجر', url: '/merchants' },
-  ]);
-  
-  const [footerText, setFooterText] = useState('© 2024 Outfred. All rights reserved.');
-  const [footerTextAr, setFooterTextAr] = useState('© 2024 أوتفريد. جميع الحقوق محفوظة.');
-  
-  const [footerLinks, setFooterLinks] = useState([
-    { name: 'About', nameAr: 'من نحن', url: '/about' },
-    { name: 'Contact', nameAr: 'تواصل معنا', url: '/contact' },
-    { name: 'Privacy', nameAr: 'سياسة الخصوصية', url: '/privacy' },
-  ]);
-  
-  const [homePageContent, setHomePageContent] = useState({
-    hero: 'Discover Fashion with AI',
-    heroAr: 'اكتشف الموضة مع الذكاء الاصطناعي',
-    subtitle: 'Smart search, image recognition, and AI-powered outfit generation',
-    subtitleAr: 'بحث ذكي، تعرف على الصور، وتوليد ملابس بالذكاء الاصطناعي',
+  const [seoSettings, setSeoSettings] = useState(() => {
+    const saved = localStorage.getItem('siteSettings_seo');
+    return saved ? JSON.parse(saved) : {
+      titleAr: 'Outfred - اكتشف الأزياء بالذكاء الاصطناعي',
+      titleEn: 'Outfred - Discover Fashion with AI',
+      descriptionAr: 'منصة اكتشاف الأزياء المدعومة بالذكاء الاصطناعي للبحث الذكي والتسوق',
+      descriptionEn: 'AI-powered fashion discovery platform for smart search and shopping',
+      keywords: 'fashion, AI, discovery, outfits, shopping, تسوق, أزياء',
+      faviconUrl: '',
+      logoUrl: '',
+    };
   });
-  
-  const [aboutPageContent, setAboutPageContent] = useState('');
-  const [aboutPageContentAr, setAboutPageContentAr] = useState('');
-  
-  const [contactPageContent, setContactPageContent] = useState('');
-  const [contactPageContentAr, setContactPageContentAr] = useState('');
-  
-  const [privacyPageContent, setPrivacyPageContent] = useState('');
-  const [privacyPageContentAr, setPrivacyPageContentAr] = useState('');
 
-  const handleLogoUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e: any) => {
-      const file = e.target?.files?.[0];
-      if (!file) return;
-      
+  const [socialLinks, setSocialLinks] = useState(() => {
+    const saved = localStorage.getItem('siteSettings_social');
+    return saved ? JSON.parse(saved) : {
+      facebook: 'https://facebook.com/outfred',
+      instagram: 'https://instagram.com/outfred',
+      twitter: 'https://twitter.com/outfred',
+      linkedin: 'https://linkedin.com/company/outfred',
+      youtube: '',
+      tiktok: '',
+    };
+  });
+
+  const [contactInfo, setContactInfo] = useState(() => {
+    const saved = localStorage.getItem('siteSettings_contact');
+    return saved ? JSON.parse(saved) : {
+      email: 'contact@outfred.com',
+      phone: '+1 (555) 123-4567',
+      addressAr: 'شارع الموضة 123، الرياض، السعودية',
+      addressEn: '123 Fashion Street, Riyadh, Saudi Arabia',
+    };
+  });
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setSiteLogo(event.target?.result as string);
-        toast.success(isRTL ? 'تم رفع الشعار' : 'Logo uploaded');
+      reader.onloadend = () => {
+        setSeoSettings({ ...seoSettings, logoUrl: reader.result as string });
+        toast.success(language === 'ar' ? 'تم رفع اللوجو' : 'Logo uploaded');
       };
       reader.readAsDataURL(file);
-    };
-    input.click();
-  };
-
-  const handleSave = () => {
-    const settings = {
-      siteLogo,
-      siteName,
-      siteTagline,
-      headerLinks,
-      footerText,
-      footerTextAr,
-      footerLinks,
-      homePageContent,
-      aboutPageContent,
-      aboutPageContentAr,
-      contactPageContent,
-      contactPageContentAr,
-      privacyPageContent,
-      privacyPageContentAr,
-    };
-    
-    localStorage.setItem('siteSettings', JSON.stringify(settings));
-    toast.success(isRTL ? 'تم حفظ الإعدادات بنجاح' : 'Settings saved successfully');
-  };
-
-  React.useEffect(() => {
-    const savedSettings = localStorage.getItem('siteSettings');
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      setSiteLogo(parsed.siteLogo || '');
-      setSiteName(parsed.siteName || 'Outfred');
-      setSiteTagline(parsed.siteTagline || '');
-      setHeaderLinks(parsed.headerLinks || headerLinks);
-      setFooterText(parsed.footerText || footerText);
-      setFooterTextAr(parsed.footerTextAr || footerTextAr);
-      setFooterLinks(parsed.footerLinks || footerLinks);
-      setHomePageContent(parsed.homePageContent || homePageContent);
-      setAboutPageContent(parsed.aboutPageContent || '');
-      setAboutPageContentAr(parsed.aboutPageContentAr || '');
-      setContactPageContent(parsed.contactPageContent || '');
-      setContactPageContentAr(parsed.contactPageContentAr || '');
-      setPrivacyPageContent(parsed.privacyPageContent || '');
-      setPrivacyPageContentAr(parsed.privacyPageContentAr || '');
     }
-  }, []);
+  };
+
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSeoSettings({ ...seoSettings, faviconUrl: reader.result as string });
+        toast.success(language === 'ar' ? 'تم رفع Favicon' : 'Favicon uploaded');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveSEO = () => {
+    localStorage.setItem('siteSettings_seo', JSON.stringify(seoSettings));
+    toast.success(language === 'ar' ? 'تم حفظ إعدادات SEO' : 'SEO settings saved');
+  };
+
+  const handleSaveSocial = () => {
+    localStorage.setItem('siteSettings_social', JSON.stringify(socialLinks));
+    toast.success(language === 'ar' ? 'تم حفظ الروابط الاجتماعية' : 'Social links saved');
+  };
+
+  const handleSaveContact = () => {
+    localStorage.setItem('siteSettings_contact', JSON.stringify(contactInfo));
+    toast.success(language === 'ar' ? 'تم حفظ معلومات التواصل' : 'Contact info saved');
+  };
 
   return (
-    <div className="min-h-screen bg-background py-8" dir={isRTL ? 'rtl' : 'ltr'}>
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Settings className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl">{isRTL ? 'إعدادات الموقع' : 'Site Settings'}</h1>
-          </div>
-          <Button onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" />
-            {isRTL ? 'حفظ التغييرات' : 'Save Changes'}
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => window.location.hash = 'admin'}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {language === 'ar' ? 'العودة للوحة التحكم' : 'Back to Dashboard'}
           </Button>
+          
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                {language === 'ar' ? 'إعدادات الموقع' : 'Site Settings'}
+              </h1>
+              <p className="text-muted-foreground">
+                {language === 'ar' ? 'إدارة SEO، اللوجو، والروابط الاجتماعية' : 'Manage SEO, logo, and social links'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <Tabs defaultValue="branding" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-            <TabsTrigger value="branding">{isRTL ? 'العلامة التجارية' : 'Branding'}</TabsTrigger>
-            <TabsTrigger value="navigation">{isRTL ? 'التنقل' : 'Navigation'}</TabsTrigger>
-            <TabsTrigger value="content">{isRTL ? 'المحتوى' : 'Content'}</TabsTrigger>
-            <TabsTrigger value="pages">{isRTL ? 'الصفحات' : 'Pages'}</TabsTrigger>
+        <Tabs defaultValue="seo" className="space-y-6">
+          <TabsList className="glass-effect border-border p-2">
+            <TabsTrigger value="seo" className="gap-2">
+              <Globe className="w-4 h-4" />
+              {language === 'ar' ? 'SEO' : 'SEO'}
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="gap-2">
+              <ImageIcon className="w-4 h-4" />
+              {language === 'ar' ? 'الشعار' : 'Branding'}
+            </TabsTrigger>
+            <TabsTrigger value="social" className="gap-2">
+              <LinkIcon className="w-4 h-4" />
+              {language === 'ar' ? 'روابط التواصل' : 'Social Links'}
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="gap-2">
+              <Settings className="w-4 h-4" />
+              {language === 'ar' ? 'معلومات التواصل' : 'Contact Info'}
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="branding" className="mt-6">
-            <Card className="p-6">
-              <h2 className="text-xl mb-6">{isRTL ? 'العلامة التجارية والشعار' : 'Branding & Logo'}</h2>
-              
+          {/* SEO Settings */}
+          <TabsContent value="seo">
+            <Card className="p-6 glass-effect border-border">
               <div className="space-y-6">
-                <div>
-                  <Label className="mb-3 block">{isRTL ? 'شعار الموقع' : 'Site Logo'}</Label>
-                  {siteLogo && (
-                    <div className="mb-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
-                      <img src={siteLogo} alt="Site Logo" className="h-16 object-contain" />
-                    </div>
-                  )}
-                  <Button onClick={handleLogoUpload} variant="outline" className="gap-2">
-                    <Upload className="w-4 h-4" />
-                    {isRTL ? 'رفع شعار جديد' : 'Upload New Logo'}
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}
+                    </Label>
+                    <Input
+                      value={seoSettings.titleAr}
+                      onChange={(e) => setSeoSettings({ ...seoSettings, titleAr: e.target.value })}
+                      placeholder="Outfred - اكتشف الأزياء"
+                      className="glass-effect"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}
+                    </Label>
+                    <Input
+                      value={seoSettings.titleEn}
+                      onChange={(e) => setSeoSettings({ ...seoSettings, titleEn: e.target.value })}
+                      placeholder="Outfred - Discover Fashion"
+                      className="glass-effect"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'الوصف (عربي)' : 'Description (Arabic)'}
+                    </Label>
+                    <Textarea
+                      value={seoSettings.descriptionAr}
+                      onChange={(e) => setSeoSettings({ ...seoSettings, descriptionAr: e.target.value })}
+                      rows={4}
+                      placeholder="منصة اكتشاف الأزياء المدعومة بالذكاء الاصطناعي..."
+                      className="glass-effect"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'الوصف (إنجليزي)' : 'Description (English)'}
+                    </Label>
+                    <Textarea
+                      value={seoSettings.descriptionEn}
+                      onChange={(e) => setSeoSettings({ ...seoSettings, descriptionEn: e.target.value })}
+                      rows={4}
+                      placeholder="AI-powered fashion discovery platform..."
+                      className="glass-effect"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label>{isRTL ? 'اسم الموقع' : 'Site Name'}</Label>
+                  <Label className="text-base font-semibold mb-2 block">
+                    {language === 'ar' ? 'الكلمات المفتاحية' : 'Keywords'}
+                  </Label>
                   <Input
-                    value={siteName}
-                    onChange={(e) => setSiteName(e.target.value)}
-                    placeholder="Outfred"
-                    className="mt-2"
+                    value={seoSettings.keywords}
+                    onChange={(e) => setSeoSettings({ ...seoSettings, keywords: e.target.value })}
+                    placeholder="fashion, AI, shopping, تسوق, أزياء"
+                    className="glass-effect"
                   />
-                </div>
-
-                <div>
-                  <Label>{isRTL ? 'الشعار (إنجليزي)' : 'Tagline (English)'}</Label>
-                  <Input
-                    value={siteTagline}
-                    onChange={(e) => setSiteTagline(e.target.value)}
-                    placeholder="Discover Fashion with AI"
-                    className="mt-2"
-                  />
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="navigation" className="mt-6">
-            <Card className="p-6">
-              <h2 className="text-xl mb-6">{isRTL ? 'إعدادات الهيدر والفوتر' : 'Header & Footer Settings'}</h2>
-              
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg mb-4">{isRTL ? 'روابط الهيدر' : 'Header Links'}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {isRTL ? 'سيتم تطبيق هذه الروابط في الإصدارات المستقبلية' : 'These links will be applied in future updates'}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'ar' ? 'افصل بفواصل' : 'Separate with commas'}
                   </p>
                 </div>
 
-                <Separator />
-
-                <div>
-                  <h3 className="text-lg mb-4">{isRTL ? 'الفوتر' : 'Footer'}</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>{isRTL ? 'نص الفوتر (إنجليزي)' : 'Footer Text (English)'}</Label>
-                      <Input
-                        value={footerText}
-                        onChange={(e) => setFooterText(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label>{isRTL ? 'نص الفوتر (عربي)' : 'Footer Text (Arabic)'}</Label>
-                      <Input
-                        value={footerTextAr}
-                        onChange={(e) => setFooterTextAr(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <Button onClick={handleSaveSEO} className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white">
+                  {language === 'ar' ? 'حفظ إعدادات SEO' : 'Save SEO Settings'}
+                </Button>
               </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="content" className="mt-6">
-            <Card className="p-6">
-              <h2 className="text-xl mb-6">{isRTL ? 'محتوى الصفحة الرئيسية' : 'Homepage Content'}</h2>
-              
+          {/* Branding */}
+          <TabsContent value="branding">
+            <Card className="p-6 glass-effect border-border">
               <div className="space-y-6">
                 <div>
-                  <Label>{isRTL ? 'العنوان الرئيسي (إنجليزي)' : 'Main Heading (English)'}</Label>
+                  <Label className="text-base font-semibold mb-2 block">
+                    {language === 'ar' ? 'رفع اللوجو' : 'Upload Logo'}
+                  </Label>
                   <Input
-                    value={homePageContent.hero}
-                    onChange={(e) => setHomePageContent({...homePageContent, hero: e.target.value})}
-                    className="mt-2"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="glass-effect"
                   />
+                  {seoSettings.logoUrl && (
+                    <div className="mt-4">
+                      <img src={seoSettings.logoUrl} alt="Logo" className="h-16 object-contain" />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'ar' ? 'الحجم الموصى به: 200x60 بكسل' : 'Recommended size: 200x60px'}
+                  </p>
                 </div>
 
                 <div>
-                  <Label>{isRTL ? 'العنوان الرئيسي (عربي)' : 'Main Heading (Arabic)'}</Label>
+                  <Label className="text-base font-semibold mb-2 block">
+                    {language === 'ar' ? 'رفع Favicon' : 'Upload Favicon'}
+                  </Label>
                   <Input
-                    value={homePageContent.heroAr}
-                    onChange={(e) => setHomePageContent({...homePageContent, heroAr: e.target.value})}
-                    className="mt-2"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFaviconUpload}
+                    className="glass-effect"
                   />
+                  {seoSettings.faviconUrl && (
+                    <div className="mt-4">
+                      <img src={seoSettings.faviconUrl} alt="Favicon" className="w-8 h-8" />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'ar' ? 'الحجم الموصى به: 32x32 بكسل' : 'Recommended size: 32x32px'}
+                  </p>
                 </div>
 
-                <div>
-                  <Label>{isRTL ? 'العنوان الفرعي (إنجليزي)' : 'Subtitle (English)'}</Label>
-                  <Input
-                    value={homePageContent.subtitle}
-                    onChange={(e) => setHomePageContent({...homePageContent, subtitle: e.target.value})}
-                    className="mt-2"
-                  />
-                </div>
-
-                <div>
-                  <Label>{isRTL ? 'العنوان الفرعي (عربي)' : 'Subtitle (Arabic)'}</Label>
-                  <Input
-                    value={homePageContent.subtitleAr}
-                    onChange={(e) => setHomePageContent({...homePageContent, subtitleAr: e.target.value})}
-                    className="mt-2"
-                  />
-                </div>
+                <Button onClick={handleSaveSEO} className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white">
+                  {language === 'ar' ? 'حفظ الشعار' : 'Save Branding'}
+                </Button>
               </div>
             </Card>
           </TabsContent>
 
-          <TabsContent value="pages" className="mt-6">
-            <div className="space-y-6">
-              <Card className="p-6">
-                <h2 className="text-xl mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {isRTL ? 'صفحة من نحن' : 'About Page'}
-                </h2>
-                <div className="space-y-4">
+          {/* Social Links */}
+          <TabsContent value="social">
+            <Card className="p-6 glass-effect border-border">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label>{isRTL ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
-                    <Textarea
-                      value={aboutPageContent}
-                      onChange={(e) => setAboutPageContent(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة من نحن...' : 'Enter about page content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">Facebook</Label>
+                    <Input
+                      value={socialLinks.facebook}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                      placeholder="https://facebook.com/outfred"
+                      className="glass-effect"
                     />
                   </div>
                   <div>
-                    <Label>{isRTL ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
-                    <Textarea
-                      value={aboutPageContentAr}
-                      onChange={(e) => setAboutPageContentAr(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة من نحن...' : 'Enter about page content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">Instagram</Label>
+                    <Input
+                      value={socialLinks.instagram}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                      placeholder="https://instagram.com/outfred"
+                      className="glass-effect"
                     />
                   </div>
                 </div>
-              </Card>
 
-              <Card className="p-6">
-                <h2 className="text-xl mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {isRTL ? 'صفحة تواصل معنا' : 'Contact Page'}
-                </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label>{isRTL ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
-                    <Textarea
-                      value={contactPageContent}
-                      onChange={(e) => setContactPageContent(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة تواصل معنا...' : 'Enter contact page content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">Twitter</Label>
+                    <Input
+                      value={socialLinks.twitter}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                      placeholder="https://twitter.com/outfred"
+                      className="glass-effect"
                     />
                   </div>
                   <div>
-                    <Label>{isRTL ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
-                    <Textarea
-                      value={contactPageContentAr}
-                      onChange={(e) => setContactPageContentAr(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة تواصل معنا...' : 'Enter contact page content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">LinkedIn</Label>
+                    <Input
+                      value={socialLinks.linkedin}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, linkedin: e.target.value })}
+                      placeholder="https://linkedin.com/company/outfred"
+                      className="glass-effect"
                     />
                   </div>
                 </div>
-              </Card>
 
-              <Card className="p-6">
-                <h2 className="text-xl mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {isRTL ? 'صفحة سياسة الخصوصية' : 'Privacy Policy Page'}
-                </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label>{isRTL ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
-                    <Textarea
-                      value={privacyPageContent}
-                      onChange={(e) => setPrivacyPageContent(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة سياسة الخصوصية...' : 'Enter privacy policy content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">YouTube</Label>
+                    <Input
+                      value={socialLinks.youtube}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
+                      placeholder="https://youtube.com/outfred"
+                      className="glass-effect"
                     />
                   </div>
                   <div>
-                    <Label>{isRTL ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
-                    <Textarea
-                      value={privacyPageContentAr}
-                      onChange={(e) => setPrivacyPageContentAr(e.target.value)}
-                      placeholder={isRTL ? 'أدخل محتوى صفحة سياسة الخصوصية...' : 'Enter privacy policy content...'}
-                      className="mt-2 min-h-[150px]"
+                    <Label className="text-base font-semibold mb-2 block">TikTok</Label>
+                    <Input
+                      value={socialLinks.tiktok}
+                      onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
+                      placeholder="https://tiktok.com/@outfred"
+                      className="glass-effect"
                     />
                   </div>
                 </div>
-              </Card>
-            </div>
+
+                <Button onClick={handleSaveSocial} className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white">
+                  {language === 'ar' ? 'حفظ الروابط الاجتماعية' : 'Save Social Links'}
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Contact Info */}
+          <TabsContent value="contact">
+            <Card className="p-6 glass-effect border-border">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                    </Label>
+                    <Input
+                      value={contactInfo.email}
+                      onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                      placeholder="contact@outfred.com"
+                      className="glass-effect"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'رقم الهاتف' : 'Phone'}
+                    </Label>
+                    <Input
+                      value={contactInfo.phone}
+                      onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
+                      placeholder="+1 (555) 123-4567"
+                      className="glass-effect"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'العنوان (عربي)' : 'Address (Arabic)'}
+                    </Label>
+                    <Textarea
+                      value={contactInfo.addressAr}
+                      onChange={(e) => setContactInfo({ ...contactInfo, addressAr: e.target.value })}
+                      placeholder="شارع الموضة 123، الرياض، السعودية"
+                      className="glass-effect"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block">
+                      {language === 'ar' ? 'العنوان (إنجليزي)' : 'Address (English)'}
+                    </Label>
+                    <Textarea
+                      value={contactInfo.addressEn}
+                      onChange={(e) => setContactInfo({ ...contactInfo, addressEn: e.target.value })}
+                      placeholder="123 Fashion Street, Riyadh, Saudi Arabia"
+                      className="glass-effect"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveContact} className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white">
+                  {language === 'ar' ? 'حفظ معلومات التواصل' : 'Save Contact Info'}
+                </Button>
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

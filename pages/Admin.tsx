@@ -523,50 +523,87 @@ export const Admin: React.FC = () => {
           {/* Analytics Tab */}
           <TabsContent value="analytics">
             {/* Quick Links */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <Card className="p-4 glass-effect border-border">
-                <div className="flex items-center justify-between">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Quick Access</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-analytics'}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <BarChart3 className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-300" />
                     </div>
                     <div>
-                      <h3 className="mb-1">Advanced Statistics</h3>
-                      <p className="text-sm text-muted-foreground">
-                        View detailed analytics
-                      </p>
+                      <h4 className="font-medium">Advanced Analytics</h4>
+                      <p className="text-xs text-muted-foreground">Detailed platform stats</p>
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => window.location.hash = 'statistics'}
-                    variant="outline"
-                  >
-                    View Statistics
-                  </Button>
-                </div>
-              </Card>
+                </Card>
 
-              <Card className="p-4 glass-effect border-border">
-                <div className="flex items-center justify-between">
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-subscriptions'}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-accent" />
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-purple-600 dark:text-purple-300" />
                     </div>
                     <div>
-                      <h3 className="mb-1">AI Settings</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Configure AI models & keys
-                      </p>
+                      <h4 className="font-medium">Subscriptions</h4>
+                      <p className="text-xs text-muted-foreground">Manage plans & packages</p>
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => window.location.hash = 'admin-ai-settings'}
-                    variant="outline"
-                  >
-                    Configure AI
-                  </Button>
-                </div>
-              </Card>
+                </Card>
+
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-cms'}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                      <Layout className="w-5 h-5 text-green-600 dark:text-green-300" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">CMS</h4>
+                      <p className="text-xs text-muted-foreground">Edit static pages</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-site-settings'}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-yellow-600 dark:text-yellow-300" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Site Settings</h4>
+                      <p className="text-xs text-muted-foreground">SEO, logo, social links</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-payment-settings'}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-pink-600 dark:text-pink-300" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">Payment & SMTP</h4>
+                      <p className="text-xs text-muted-foreground">Paymob & email settings</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
+                  onClick={() => window.location.hash = 'admin-ai-settings'}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium">AI Settings</h4>
+                      <p className="text-xs text-muted-foreground">Configure AI models</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

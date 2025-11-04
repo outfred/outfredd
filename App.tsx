@@ -11,6 +11,11 @@ import { Auth } from './pages/Auth';
 import { Admin } from './pages/Admin';
 import { AdminSiteSettings } from './pages/AdminSiteSettings';
 import { AdminAISettings } from './pages/AdminAISettings';
+import { AdminSubscriptions } from './pages/AdminSubscriptions';
+import { AdminCMS } from './pages/AdminCMS';
+import { AdminPaymentSettings } from './pages/AdminPaymentSettings';
+import { AdminAnalytics } from './pages/AdminAnalytics';
+import { AccountSettings } from './pages/AccountSettings';
 import { StaticPages } from './pages/StaticPages';
 import { Debug } from './pages/Debug';
 import { MerchantImport } from './pages/MerchantImport';
@@ -28,12 +33,17 @@ type Page =
   | 'home' 
   | 'merchants' 
   | 'account' 
+  | 'account-settings'
   | 'join' 
   | 'login' 
   | 'register' 
   | 'admin'
   | 'admin-site-settings'
   | 'admin-ai-settings'
+  | 'admin-subscriptions'
+  | 'admin-cms'
+  | 'admin-payment-settings'
+  | 'admin-analytics'
   | 'about'
   | 'privacy'
   | 'contact'
@@ -138,12 +148,22 @@ export default function App() {
         return <Auth mode="login" onSuccess={() => handleNavigate('home')} />;
       case 'register':
         return <Auth mode="register" onSuccess={() => handleNavigate('home')} />;
+      case 'account-settings':
+        return <AccountSettings />;
       case 'admin':
         return <Admin />;
       case 'admin-site-settings':
-        return <AdminSiteSettings onNavigate={handleNavigate} />;
+        return <AdminSiteSettings />;
       case 'admin-ai-settings':
         return <AdminAISettings onNavigate={handleNavigate} />;
+      case 'admin-subscriptions':
+        return <AdminSubscriptions />;
+      case 'admin-cms':
+        return <AdminCMS />;
+      case 'admin-payment-settings':
+        return <AdminPaymentSettings />;
+      case 'admin-analytics':
+        return <AdminAnalytics />;
       case 'import':
         return <MerchantImport />;
       case 'merchant-dashboard':

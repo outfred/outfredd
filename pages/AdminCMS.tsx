@@ -1,0 +1,306 @@
+import React, { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { FileText, Save, Eye } from 'lucide-react';
+import { motion } from 'motion/react';
+import { toast } from 'sonner';
+
+export const AdminCMS: React.FC = () => {
+  const { language } = useLanguage();
+  
+  const [pages, setPages] = useState({
+    about: {
+      titleAr: 'من نحن',
+      titleEn: 'About Us',
+      contentAr: 'نحن منصة Outfred لاكتشاف الأزياء...',
+      contentEn: 'We are Outfred, a fashion discovery platform...',
+    },
+    privacy: {
+      titleAr: 'سياسة الخصوصية',
+      titleEn: 'Privacy Policy',
+      contentAr: 'سياسة الخصوصية الخاصة بنا...',
+      contentEn: 'Our privacy policy...',
+    },
+    contact: {
+      titleAr: 'اتصل بنا',
+      titleEn: 'Contact Us',
+      contentAr: 'للتواصل معنا...',
+      contentEn: 'To contact us...',
+      email: 'contact@outfred.com',
+      phone: '+1234567890',
+      address: '123 Fashion Street',
+    },
+  });
+
+  const [activeTab, setActiveTab] = useState('about');
+
+  const handleSave = (pageKey: string) => {
+    toast.success(language === 'ar' ? 'تم حفظ الصفحة بنجاح' : 'Page saved successfully');
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">
+          {language === 'ar' ? 'إدارة محتوى الموقع' : 'Content Management System'}
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          {language === 'ar' ? 'تحرير صفحات الموقع الثابتة' : 'Edit static website pages'}
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsTrigger value="about">
+            {language === 'ar' ? 'من نحن' : 'About Us'}
+          </TabsTrigger>
+          <TabsTrigger value="privacy">
+            {language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}
+          </TabsTrigger>
+          <TabsTrigger value="contact">
+            {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* About Page */}
+        <TabsContent value="about">
+          <Card className="p-6 glass-effect">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
+                  <Input
+                    value={pages.about.titleAr}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      about: { ...pages.about, titleAr: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
+                  <Input
+                    value={pages.about.titleEn}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      about: { ...pages.about, titleEn: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
+                <Textarea
+                  value={pages.about.contentAr}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    about: { ...pages.about, contentAr: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
+                <Textarea
+                  value={pages.about.contentEn}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    about: { ...pages.about, contentEn: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button onClick={() => handleSave('about')} className="flex-1">
+                  <Save className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'حفظ' : 'Save'}
+                </Button>
+                <Button variant="outline">
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'معاينة' : 'Preview'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Privacy Page */}
+        <TabsContent value="privacy">
+          <Card className="p-6 glass-effect">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
+                  <Input
+                    value={pages.privacy.titleAr}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      privacy: { ...pages.privacy, titleAr: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
+                  <Input
+                    value={pages.privacy.titleEn}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      privacy: { ...pages.privacy, titleEn: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
+                <Textarea
+                  value={pages.privacy.contentAr}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    privacy: { ...pages.privacy, contentAr: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
+                <Textarea
+                  value={pages.privacy.contentEn}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    privacy: { ...pages.privacy, contentEn: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button onClick={() => handleSave('privacy')} className="flex-1">
+                  <Save className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'حفظ' : 'Save'}
+                </Button>
+                <Button variant="outline">
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'معاينة' : 'Preview'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Contact Page */}
+        <TabsContent value="contact">
+          <Card className="p-6 glass-effect">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
+                  <Input
+                    value={pages.contact.titleAr}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      contact: { ...pages.contact, titleAr: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
+                  <Input
+                    value={pages.contact.titleEn}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      contact: { ...pages.contact, titleEn: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</Label>
+                  <Input
+                    value={pages.contact.email}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      contact: { ...pages.contact, email: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ar' ? 'الهاتف' : 'Phone'}</Label>
+                  <Input
+                    value={pages.contact.phone}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      contact: { ...pages.contact, phone: e.target.value }
+                    })}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ar' ? 'العنوان' : 'Address'}</Label>
+                  <Input
+                    value={pages.contact.address}
+                    onChange={(e) => setPages({
+                      ...pages,
+                      contact: { ...pages.contact, address: e.target.value }
+                    })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
+                <Textarea
+                  value={pages.contact.contentAr}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    contact: { ...pages.contact, contentAr: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div>
+                <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
+                <Textarea
+                  value={pages.contact.contentEn}
+                  onChange={(e) => setPages({
+                    ...pages,
+                    contact: { ...pages.contact, contentEn: e.target.value }
+                  })}
+                  rows={10}
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button onClick={() => handleSave('contact')} className="flex-1">
+                  <Save className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'حفظ' : 'Save'}
+                </Button>
+                <Button variant="outline">
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'معاينة' : 'Preview'}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
