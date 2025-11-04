@@ -1412,6 +1412,193 @@ app.get("/make-server-dec0bed9/admin/analytics", async (c) => {
 });
 
 // ======================
+// ADMIN CMS & SETTINGS
+// ======================
+
+// Site Settings (SEO, Branding, Social)
+app.get("/make-server-dec0bed9/admin/site-settings", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const settings = await kv.get('settings:site') || {
+      siteName: 'Outfred',
+      siteDescription: 'AI-powered fashion discovery platform',
+      siteKeywords: 'fashion, AI, shopping, outfits',
+      siteLogo: '',
+      siteFavicon: '',
+      socialLinks: {
+        facebook: '',
+        twitter: '',
+        instagram: '',
+        linkedin: ''
+      }
+    };
+
+    return c.json({ settings });
+  } catch (error) {
+    console.error('Error getting site settings:', error);
+    return c.json({ error: 'Failed to get site settings' }, 500);
+  }
+});
+
+app.post("/make-server-dec0bed9/admin/site-settings", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const body = await c.req.json();
+    await kv.set('settings:site', body);
+
+    return c.json({ success: true, settings: body });
+  } catch (error) {
+    console.error('Error updating site settings:', error);
+    return c.json({ error: 'Failed to update site settings' }, 500);
+  }
+});
+
+// CMS Pages
+app.get("/make-server-dec0bed9/admin/cms", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const pages = await kv.get('cms:pages') || [
+      {
+        id: 'about',
+        title: { en: 'About Us', ar: 'عنا' },
+        content: { en: 'Welcome to Outfred', ar: 'مرحباً بكم في Outfred' },
+        slug: 'about'
+      },
+      {
+        id: 'privacy',
+        title: { en: 'Privacy Policy', ar: 'سياسة الخصوصية' },
+        content: { en: 'Privacy policy content', ar: 'محتوى سياسة الخصوصية' },
+        slug: 'privacy'
+      },
+      {
+        id: 'contact',
+        title: { en: 'Contact Us', ar: 'اتصل بنا' },
+        content: { en: 'Contact information', ar: 'معلومات الاتصال' },
+        slug: 'contact'
+      }
+    ];
+
+    return c.json({ pages });
+  } catch (error) {
+    console.error('Error getting CMS pages:', error);
+    return c.json({ error: 'Failed to get CMS pages' }, 500);
+  }
+});
+
+app.post("/make-server-dec0bed9/admin/cms", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const body = await c.req.json();
+    await kv.set('cms:pages', body);
+
+    return c.json({ success: true, pages: body });
+  } catch (error) {
+    console.error('Error updating CMS pages:', error);
+    return c.json({ error: 'Failed to update CMS pages' }, 500);
+  }
+});
+
+// Payment Settings (Paymob)
+app.get("/make-server-dec0bed9/admin/payment-settings", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const settings = await kv.get('settings:payment') || {
+      paymob: {
+        apiKey: '',
+        integrationId: '',
+        iframeId: '',
+        hmacSecret: '',
+        enabled: false
+      }
+    };
+
+    return c.json({ settings });
+  } catch (error) {
+    console.error('Error getting payment settings:', error);
+    return c.json({ error: 'Failed to get payment settings' }, 500);
+  }
+});
+
+app.post("/make-server-dec0bed9/admin/payment-settings", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const body = await c.req.json();
+    await kv.set('settings:payment', body);
+
+    return c.json({ success: true, settings: body });
+  } catch (error) {
+    console.error('Error updating payment settings:', error);
+    return c.json({ error: 'Failed to update payment settings' }, 500);
+  }
+});
+
+// SMTP Settings
+app.get("/make-server-dec0bed9/admin/smtp", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const settings = await kv.get('settings:smtp') || {
+      host: '',
+      port: 587,
+      username: '',
+      password: '',
+      fromEmail: '',
+      fromName: 'Outfred',
+      enabled: false
+    };
+
+    return c.json({ settings });
+  } catch (error) {
+    console.error('Error getting SMTP settings:', error);
+    return c.json({ error: 'Failed to get SMTP settings' }, 500);
+  }
+});
+
+app.post("/make-server-dec0bed9/admin/smtp", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user || (await kv.get(`user:${user.id}`))?.role !== 'admin') {
+      return c.json({ error: "Admin access required" }, 403);
+    }
+
+    const body = await c.req.json();
+    await kv.set('settings:smtp', body);
+
+    return c.json({ success: true, settings: body });
+  } catch (error) {
+    console.error('Error updating SMTP settings:', error);
+    return c.json({ error: 'Failed to update SMTP settings' }, 500);
+  }
+});
+
+// ======================
 // PRODUCT IMPORT SYSTEM
 // ======================
 
