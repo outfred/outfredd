@@ -6,6 +6,40 @@ Outfred is a modern fashion discovery platform built with React, TypeScript, and
 
 # Recent Changes
 
+## November 4, 2025 - Complete Subscription System with Rate Limiting & Paymob Integration
+- **Subscription System Fully Implemented:**
+  - User subscription fields added to KV store: subscription_plan, searches_count, searches_limit, subscription_expires_at, payment_status, last_search_reset
+  - Three plans: Free (5 searches/month, $0), Basic (100 searches/month, $29), Pro (Unlimited searches, $99)
+  - Database tables created: payments (transaction history), subscription_plans with bilingual features
+- **Rate Limiting on Search:** Search endpoint enforces limits based on subscription tier
+  - Free users: 5 searches/month maximum
+  - Basic users: 100 searches/month
+  - Pro users: Unlimited (999999/month)
+  - Auto-downgrade expired subscriptions to free plan
+  - Monthly reset logic based on last_search_reset timestamp
+  - Returns 429 error with bilingual message when limit reached
+- **Pricing Page Created:** pages/Pricing.tsx - Public-facing subscription selection page
+  - Displays all plans with features, pricing, and current plan badge
+  - Upgrade/downgrade buttons with loading states
+  - Bilingual UI (Arabic/English) with color-coded plan badges
+  - Integrated into Header navigation with 💎 icon
+- **Admin Subscription Management:** Admins can now manage user subscriptions from Users section
+  - Added "Subscription Plan" and "Searches Used" columns to user cards
+  - "Edit Plan" button opens dialog to modify: plan, searches_count, searches_limit, payment_status, subscription_expires_at
+  - Auto-fills searches_limit when plan is selected (Free=5, Basic=100, Pro=999999)
+  - Glass effect UI with bilingual labels and validation
+- **Backend Subscription Endpoints:** 4 new API endpoints created
+  - GET /api/subscriptions/plans - Returns all available plans with bilingual features
+  - GET /api/subscriptions/current - Returns user's current subscription with remaining searches
+  - POST /api/subscriptions/upgrade - Upgrades user plan (sets expiration, resets count)
+  - POST /admin/users/:userId/subscription - Admin endpoint to modify any user's subscription
+- **Paymob Payment Integration (DEMO MODE):**
+  - PaymobCheckout.tsx component created with payment flow skeleton
+  - PAYMOB_INTEGRATION_GUIDE.md with complete 6-step implementation guide
+  - Currently simulates successful payment after 2 seconds
+  - Ready for production Paymob API integration (needs API keys from admin settings)
+- **User Registration Enhanced:** New users automatically get Free plan with 5 searches/month
+
 ## November 4, 2025 - Complete Admin Panel Overhaul & Backend Integration
 - **Backend API Implementation:** Created complete backend API for admin panel with PostgreSQL database
   - Database migration: cms_pages, site_settings, payment_settings, smtp_settings, subscription_plans tables
