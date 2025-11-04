@@ -58,7 +58,12 @@ export const MerchantImport: React.FC = () => {
     if (activeTab === 'history') {
       loadImportHistory();
     }
-  }, [activeTab]);
+    
+    // Auto-set merchant ID for merchant users
+    if (user && user.role === 'merchant') {
+      loadUserMerchant();
+    }
+  }, [activeTab, user]);
 
   useEffect(() => {
     // Cleanup polling on unmount
@@ -69,11 +74,22 @@ export const MerchantImport: React.FC = () => {
     };
   }, [sessionPolling]);
 
+  const loadUserMerchant = async () => {
+    try {
+      const data = await merchantsApi.getUserMerchant();
+      if (data.merchant) {
+        setSelectedMerchant(data.merchant.id);
+      }
+    } catch (error) {
+      console.error('Error loading user merchant:', error);
+    }
+  };
+
   const loadMerchants = async () => {
     try {
       const data = await merchantsApi.list();
       setMerchants(data.merchants.filter((m: any) => m.status === 'approved'));
-      if (data.merchants.length > 0 && !selectedMerchant) {
+      if (data.merchants.length > 0 && !selectedMerchant && user?.role !== 'merchant') {
         setSelectedMerchant(data.merchants[0].id);
       }
     } catch (error) {
@@ -310,45 +326,29 @@ export const MerchantImport: React.FC = () => {
               animate={{ opacity: 1 }}
               className="space-y-6"
             >
-              {/* Merchant Selection */}
-              <Card className="p-6 backdrop-blur-sm bg-white/80 border-purple-100">
-                <Label className="text-lg mb-3 block">
-                  {language === 'ar' ? '1️⃣ اختر المتجر' : '1️⃣ Select Merchant'}
-                </Label>
-                <select
-                  value={selectedMerchant}
-                  onChange={(e) => setSelectedMerchant(e.target.value)}
-                  className="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none mb-4"
-                  disabled={loading}
-                >
-                  <option value="">
-                    {language === 'ar' ? 'اختر متجر...' : 'Select a merchant...'}
-                  </option>
-                  {merchants.map((merchant) => (
-                    <option key={merchant.id} value={merchant.id}>
-                      {merchant.brandName || merchant.name} {merchant.status === 'approved' ? '✅' : '⏳'}
-                    </option>
-                  ))}
-                </select>
-                
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <Label className="text-sm text-gray-600 mb-2 block">
-                    {language === 'ar' ? 'أو أدخل معرف المتجر يدوياً:' : 'Or enter Merchant ID manually:'}
+              {/* Merchant Info - Hidden for merchant users */}
+              {user && user.role !== 'merchant' && (
+                <Card className="p-6 backdrop-blur-sm bg-white/80 border-purple-100">
+                  <Label className="text-lg mb-3 block">
+                    {language === 'ar' ? '1️⃣ اختر المتجر' : '1️⃣ Select Merchant'}
                   </Label>
-                  <Input
+                  <select
                     value={selectedMerchant}
                     onChange={(e) => setSelectedMerchant(e.target.value)}
-                    placeholder={language === 'ar' ? 'الصق معرف المتجر هنا...' : 'Paste merchant ID here...'}
-                    className="font-mono text-sm"
+                    className="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 outline-none mb-4"
                     disabled={loading}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    {language === 'ar' 
-                      ? '💡 يمكنك الحصول على معرف المتجر من صفحة "متجري" > قسم التحليلات'
-                      : '💡 You can get your Merchant ID from "My Store" > Analytics section'}
-                  </p>
-                </div>
-              </Card>
+                  >
+                    <option value="">
+                      {language === 'ar' ? 'اختر متجر...' : 'Select a merchant...'}
+                    </option>
+                    {merchants.map((merchant) => (
+                      <option key={merchant.id} value={merchant.id}>
+                        {merchant.brandName || merchant.name} {merchant.status === 'approved' ? '✅' : '⏳'}
+                      </option>
+                    ))}
+                  </select>
+                </Card>
+              )}
 
               {/* Source Type Selection */}
               <Card className="p-6 backdrop-blur-sm bg-white/80 border-purple-100">
@@ -470,11 +470,11 @@ export const MerchantImport: React.FC = () => {
                       className="space-y-4"
                     >
                       <Label>
-                        {language === 'ar' ? 'رابط الموقع' : 'Website URL'}
+                        {language === 'ar' ? 'رابط القسم في الموقع' : 'Collection/Category URL'}
                       </Label>
                       <Input
                         type="url"
-                        placeholder="https://www.example.com/products"
+                        placeholder="https://your-store.com/collections/all"
                         value={websiteUrl}
                         onChange={(e) => setWebsiteUrl(e.target.value)}
                         disabled={loading}
@@ -483,8 +483,8 @@ export const MerchantImport: React.FC = () => {
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
                           {language === 'ar'
-                            ? 'سيتم استخراج المنتجات تلقائياً من الموقع'
-                            : 'Products will be automatically extracted from the website'}
+                            ? '⚠️ مهم: ضع رابط قسم محدد من موقعك (مثل: your-store.com/collections/all) وليس رابط الموقع الرئيسي. هذا يساعد في استخراج المنتجات بدقة.'
+                            : '⚠️ Important: Enter a specific collection/category URL (e.g., your-store.com/collections/all) NOT your homepage. This helps extract products accurately.'}
                         </AlertDescription>
                       </Alert>
                     </motion.div>

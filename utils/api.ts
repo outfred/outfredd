@@ -105,6 +105,7 @@ export const authApi = {
 export const merchantsApi = {
   create: (merchantData: any) => api('/merchants/create', { method: 'POST', body: merchantData }),
   list: (status?: string) => api(`/merchants/list${status ? `?status=${status}` : ''}`),
+  getUserMerchant: () => api('/merchants/my-merchant', { requireAuth: true }),
   approve: (id: string) => api(`/merchants/approve/${id}`, { method: 'POST', requireAuth: true }),
   reject: (id: string) => api(`/merchants/reject/${id}`, { method: 'POST', requireAuth: true }),
   delete: (id: string) => api(`/merchants/delete/${id}`, { method: 'DELETE', requireAuth: true }),
