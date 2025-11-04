@@ -5,8 +5,9 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = 'https://jnnzjcqaxfxphkdvlxrv.supabase.co/functions/v1/server/make-server-dec0bed9';
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-dec0bed9`;
 
 interface PaymobCheckoutProps {
   plan: string;
@@ -122,7 +123,7 @@ export const PaymobCheckout: React.FC<PaymobCheckoutProps> = ({
         headers: {
           'Content-Type': 'application/json',
           'X-Access-Token': token || '',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+          'Authorization': `Bearer ${publicAnonKey}`,
         },
         body: JSON.stringify({ plan }),
       });

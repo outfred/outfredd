@@ -5,8 +5,9 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Check, Crown, Zap, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = 'https://jnnzjcqaxfxphkdvlxrv.supabase.co/functions/v1/server/make-server-dec0bed9';
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-dec0bed9`;
 
 export const Pricing: React.FC = () => {
   const { language } = useLanguage();
@@ -38,7 +39,7 @@ export const Pricing: React.FC = () => {
       const response = await fetch(`${API_URL}/api/subscriptions/current`, {
         headers: {
           'X-Access-Token': token || '',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+          'Authorization': `Bearer ${publicAnonKey}`,
         },
       });
       const data = await response.json();
@@ -63,7 +64,7 @@ export const Pricing: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
           'X-Access-Token': token || '',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+          'Authorization': `Bearer ${publicAnonKey}`,
         },
         body: JSON.stringify({ plan: planName }),
       });

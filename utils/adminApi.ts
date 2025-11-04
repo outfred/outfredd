@@ -1,7 +1,9 @@
 // Admin API Helper Functions
 // Frontend utilities for calling admin backend endpoints
 
-const API_URL = 'https://jnnzjcqaxfxphkdvlxrv.supabase.co/functions/v1/server/make-server-dec0bed9';
+import { projectId, publicAnonKey } from './supabase/info';
+
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-dec0bed9`;
 
 // Helper: Get auth token
 const getToken = () => localStorage.getItem('token');
@@ -15,7 +17,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers: {
       'Content-Type': 'application/json',
       'X-Access-Token': token || '',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+      'Authorization': `Bearer ${publicAnonKey}`,
       ...options.headers,
     },
   });

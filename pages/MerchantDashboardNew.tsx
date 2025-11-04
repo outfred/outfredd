@@ -91,11 +91,13 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
         const pageViews = data.totalPageViews ?? 0;
         const productViews = data.totalProductViews ?? 0;
         
+        // TODO: Implement real sales tracking system
+        // For now, show 0 for sales and revenue until real transaction data is available
         setStats(prev => ({
           ...prev,
           totalViews: pageViews + productViews,
-          totalSales: Math.floor(productViews * 0.15),
-          revenue: Math.floor(productViews * 164),
+          totalSales: 0, // Will be populated from real order data when implemented
+          revenue: 0, // Will be populated from real transaction data when implemented
         }));
         setTopProducts(data.topProducts || []);
       }
