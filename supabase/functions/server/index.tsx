@@ -5,6 +5,8 @@ import * as kv from "./kv_store.tsx";
 import { initDemoData } from "./init.tsx";
 import { fetchProductsFromURL } from "./scraper.tsx";
 import adminRoutes from "./routes_admin.tsx";
+import { searchText, searchByImage, spellCheckQuery } from "./ai_search_engine.tsx";
+import { generateImage, enhanceFashionPrompt, checkHFAvailability } from "./huggingface_client.tsx";
 
 const app = new Hono();
 
@@ -2409,6 +2411,368 @@ app.get("/make-server-dec0bed9/merchant-stats/:merchantId", async (c) => {
     console.error('Error getting merchant stats:', error);
     return c.json({ error: `Failed to get merchant stats: ${error?.message}` }, 500);
   }
+});
+
+// ======================
+// AI SEARCH ROUTES
+// ======================
+
+// Enhanced text search with AI
+app.post("/make-server-dec0bed9/api/search/text", async (c) => {
+  const startTime = Date.now();
+  try {
+    console.log('🔍 AI Text Search Request');
+    
+    const body = await c.req.json();
+    const { query, language = 'en', filters, limit = 20 } = body;
+
+    if (!query) {
+      return c.json({ error: "Missing search query" }, 400);
+    }
+
+    console.log(`  Query: "${query}" (${language})`);
+    console.log(`  Filters:`, filters || 'none');
+
+    // Get all products
+    const products = await kv.getByPrefix('product:');
+    const validProducts = products.filter((p: any) => p && p.id);
+
+    console.log(`  Total products: ${validProducts.length}`);
+
+    // Perform AI-powered search
+    const searchResult = await searchText(query, validProducts, {
+      limit,
+      filters,
+      minScore: 0.1,
+    });
+
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ Search completed in ${executionTime}ms, found ${searchResult.results.length} results`);
+
+    return c.json({
+      results: searchResult.results.map(r => r.product),
+      correctedQuery: searchResult.correctedQuery,
+      suggestions: searchResult.suggestions,
+      debug: {
+        ...searchResult.debug,
+        totalExecutionTime: executionTime,
+      },
+    });
+  } catch (error: any) {
+    const executionTime = Date.now() - startTime;
+    console.error('❌ Text search error:', error.message);
+    return c.json({ 
+      error: `Search failed: ${error.message}`,
+      debug: { executionTime }
+    }, 500);
+  }
+});
+
+// Image similarity search
+app.post("/make-server-dec0bed9/api/search/image", async (c) => {
+  const startTime = Date.now();
+  try {
+    console.log('🖼️ AI Image Search Request');
+    
+    const body = await c.req.json();
+    const { imageUrl, limit = 20 } = body;
+
+    if (!imageUrl) {
+      return c.json({ error: "Missing image URL" }, 400);
+    }
+
+    console.log(`  Image URL: ${imageUrl}`);
+
+    // Get all products
+    const products = await kv.getByPrefix('product:');
+    const validProducts = products.filter((p: any) => p && p.id);
+
+    console.log(`  Total products: ${validProducts.length}`);
+
+    // Perform image similarity search
+    const searchResult = await searchByImage(imageUrl, validProducts, {
+      limit,
+      minSimilarity: 0.5,
+    });
+
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ Image search completed in ${executionTime}ms, found ${searchResult.results.length} results`);
+
+    return c.json({
+      results: searchResult.results.map(r => r.product),
+      detectedColors: searchResult.detectedColors,
+      detectedCategories: searchResult.detectedCategories,
+      debug: {
+        ...searchResult.debug,
+        totalExecutionTime: executionTime,
+      },
+    });
+  } catch (error: any) {
+    const executionTime = Date.now() - startTime;
+    console.error('❌ Image search error:', error.message);
+    return c.json({ 
+      error: `Image search failed: ${error.message}`,
+      debug: { executionTime }
+    }, 500);
+  }
+});
+
+// Spell check endpoint
+app.post("/make-server-dec0bed9/api/spellcheck", async (c) => {
+  const startTime = Date.now();
+  try {
+    console.log('📝 Spell Check Request');
+    
+    const body = await c.req.json();
+    const { text, language = 'en' } = body;
+
+    if (!text) {
+      return c.json({ error: "Missing text" }, 400);
+    }
+
+    console.log(`  Text: "${text}" (${language})`);
+
+    // Build dictionary from products
+    const products = await kv.getByPrefix('product:');
+    const dictionary = new Set<string>();
+    
+    products.forEach((product: any) => {
+      if (!product) return;
+      const words = [
+        product.name,
+        product.description,
+        product.category,
+        product.brand,
+        product.color,
+      ].filter(Boolean).join(' ').toLowerCase().split(/\s+/);
+      
+      words.forEach(word => dictionary.add(word));
+    });
+
+    console.log(`  Dictionary size: ${dictionary.size} words`);
+
+    // Perform spell check
+    const result = spellCheckQuery(text, Array.from(dictionary));
+
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ Spell check completed in ${executionTime}ms`);
+
+    return c.json({
+      corrected: result.corrected,
+      suggestions: result.suggestions,
+      confidence: result.confidence,
+      corrections: result.corrections,
+      debug: {
+        originalText: text,
+        dictionarySize: dictionary.size,
+        executionTime,
+      },
+    });
+  } catch (error: any) {
+    const executionTime = Date.now() - startTime;
+    console.error('❌ Spell check error:', error.message);
+    return c.json({ 
+      error: `Spell check failed: ${error.message}`,
+      debug: { executionTime }
+    }, 500);
+  }
+});
+
+// Generate image with Stable Diffusion
+app.post("/make-server-dec0bed9/api/generate-image", async (c) => {
+  const startTime = Date.now();
+  try {
+    console.log('🎨 Image Generation Request');
+    
+    const body = await c.req.json();
+    const { prompt, style = 'realistic', size = '512x512' } = body;
+
+    if (!prompt) {
+      return c.json({ error: "Missing prompt" }, 400);
+    }
+
+    console.log(`  Prompt: "${prompt}"`);
+    console.log(`  Style: ${style}, Size: ${size}`);
+
+    // Enhance prompt for fashion
+    const enhancedPrompt = enhanceFashionPrompt(prompt);
+    console.log(`  Enhanced: "${enhancedPrompt}"`);
+
+    // Parse size
+    const [width, height] = size.split('x').map(Number);
+
+    // Generate image
+    const result = await generateImage(enhancedPrompt, {
+      width: width || 512,
+      height: height || 512,
+      numInferenceSteps: 50,
+      guidanceScale: 7.5,
+    });
+
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ Image generated in ${executionTime}ms`);
+
+    return c.json({
+      imageUrl: result.imageUrl,
+      prompt: enhancedPrompt,
+      debug: {
+        originalPrompt: prompt,
+        enhancedPrompt,
+        size: `${width}x${height}`,
+        executionTime,
+      },
+    });
+  } catch (error: any) {
+    const executionTime = Date.now() - startTime;
+    console.error('❌ Image generation error:', error.message);
+    return c.json({ 
+      error: `Image generation failed: ${error.message}`,
+      debug: { executionTime }
+    }, 500);
+  }
+});
+
+// Debug and test all AI endpoints
+app.get("/make-server-dec0bed9/api/debug/tests", async (c) => {
+  console.log('🧪 Running AI Debug Tests');
+  
+  const tests: any = {
+    textSearch: { status: 'pending', sample: null, time: 0 },
+    imageSearch: { status: 'pending', sample: null, time: 0 },
+    spellcheck: { status: 'pending', sample: null, time: 0 },
+    imageGeneration: { status: 'pending', sample: null, time: 0 },
+    huggingfaceAvailability: { status: 'pending', hasApiKey: false, error: null },
+  };
+
+  // Test 1: Text Search
+  try {
+    const start = Date.now();
+    const products = await kv.getByPrefix('product:');
+    const validProducts = products.filter((p: any) => p && p.id).slice(0, 10);
+    
+    const result = await searchText('hoodie', validProducts, { limit: 3 });
+    tests.textSearch = {
+      status: 'success',
+      sample: result.results.length > 0 ? result.results[0].product.name : 'No results',
+      time: Date.now() - start,
+      resultsCount: result.results.length,
+    };
+    console.log('✅ Text search test passed');
+  } catch (error: any) {
+    tests.textSearch = { status: 'failed', error: error.message, time: 0 };
+    console.error('❌ Text search test failed:', error.message);
+  }
+
+  // Test 2: Spell Check
+  try {
+    const start = Date.now();
+    const products = await kv.getByPrefix('product:');
+    const dictionary = new Set<string>();
+    products.slice(0, 50).forEach((p: any) => {
+      if (p?.name) p.name.split(/\s+/).forEach((w: string) => dictionary.add(w.toLowerCase()));
+    });
+    
+    const result = spellCheckQuery('hodie', Array.from(dictionary));
+    tests.spellcheck = {
+      status: 'success',
+      sample: result.corrected,
+      time: Date.now() - start,
+      confidence: result.confidence,
+    };
+    console.log('✅ Spell check test passed');
+  } catch (error: any) {
+    tests.spellcheck = { status: 'failed', error: error.message, time: 0 };
+    console.error('❌ Spell check test failed:', error.message);
+  }
+
+  // Test 3: HuggingFace Availability
+  try {
+    const result = await checkHFAvailability();
+    tests.huggingfaceAvailability = {
+      status: result.available ? 'success' : 'unavailable',
+      hasApiKey: result.hasApiKey,
+      error: result.error || null,
+    };
+    console.log(result.available ? '✅ HuggingFace available' : '⚠️ HuggingFace unavailable');
+  } catch (error: any) {
+    tests.huggingfaceAvailability = {
+      status: 'failed',
+      hasApiKey: false,
+      error: error.message,
+    };
+    console.error('❌ HuggingFace test failed:', error.message);
+  }
+
+  // Test 4: Image Search (only if HF is available)
+  if (tests.huggingfaceAvailability.status === 'success') {
+    try {
+      const start = Date.now();
+      // Use a sample image URL
+      const sampleImageUrl = 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400';
+      const products = await kv.getByPrefix('product:');
+      const validProducts = products.filter((p: any) => p && p.id).slice(0, 5);
+      
+      const result = await searchByImage(sampleImageUrl, validProducts, { limit: 2 });
+      tests.imageSearch = {
+        status: 'success',
+        sample: 'Image search functional',
+        time: Date.now() - start,
+        resultsCount: result.results.length,
+      };
+      console.log('✅ Image search test passed');
+    } catch (error: any) {
+      tests.imageSearch = { status: 'failed', error: error.message, time: 0 };
+      console.error('❌ Image search test failed:', error.message);
+    }
+  } else {
+    tests.imageSearch = { status: 'skipped', error: 'HuggingFace unavailable' };
+  }
+
+  // Test 5: Image Generation (only if HF is available)
+  if (tests.huggingfaceAvailability.status === 'success') {
+    try {
+      const start = Date.now();
+      const result = await generateImage('black hoodie', { width: 256, height: 256, numInferenceSteps: 20 });
+      tests.imageGeneration = {
+        status: 'success',
+        sample: 'Image generated',
+        time: Date.now() - start,
+      };
+      console.log('✅ Image generation test passed');
+    } catch (error: any) {
+      tests.imageGeneration = { status: 'failed', error: error.message, time: 0 };
+      console.error('❌ Image generation test failed:', error.message);
+    }
+  } else {
+    tests.imageGeneration = { status: 'skipped', error: 'HuggingFace unavailable' };
+  }
+
+  // System info
+  const products = await kv.getByPrefix('product:');
+  const validProducts = products.filter((p: any) => p && p.id);
+  const productsWithEmbeddings = validProducts.filter((p: any) => p.clipEmbedding);
+
+  const systemInfo = {
+    kvStoreSize: products.length,
+    productCount: validProducts.length,
+    indexedProducts: productsWithEmbeddings.length,
+    embeddingCoverage: validProducts.length > 0 
+      ? `${((productsWithEmbeddings.length / validProducts.length) * 100).toFixed(1)}%`
+      : '0%',
+  };
+
+  console.log('🧪 All tests completed');
+
+  return c.json({
+    tests,
+    systemInfo,
+    summary: {
+      total: Object.keys(tests).length,
+      passed: Object.values(tests).filter((t: any) => t.status === 'success').length,
+      failed: Object.values(tests).filter((t: any) => t.status === 'failed').length,
+      skipped: Object.values(tests).filter((t: any) => t.status === 'skipped').length,
+    },
+  });
 });
 
 // Middleware to attach user to context for admin routes
