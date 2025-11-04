@@ -6,6 +6,48 @@ Outfred is a modern fashion discovery platform built with React, TypeScript, and
 
 # Recent Changes
 
+## November 4, 2025 - Complete Email & Notification System
+- **Email Templates System:** Created professional bilingual email templates (utils/emailTemplates.ts)
+  - Welcome email: Sent after successful registration with platform overview
+  - Email verification: 6-digit code with 10-minute expiration
+  - Password reset: 6-digit code with 15-minute expiration
+  - Test email: For SMTP configuration testing in admin panel
+  - All templates support Arabic/English with responsive HTML design
+- **Email Verification Flow:** Integrated into registration process
+  - Auto-sends welcome + verification emails upon registration
+  - Verification codes stored in localStorage with expiration timestamps
+  - Codes displayed in console for testing when SMTP not configured
+- **Forgot Password System:** Complete 3-step password reset flow (pages/ForgotPassword.tsx)
+  - Step 1: Email input with validation
+  - Step 2: 6-digit verification code entry (15-minute validity)
+  - Step 3: New password confirmation with strength requirements
+  - Auto-redirect to login after successful reset
+  - Accessible from login page via "Forgot Password?" link
+- **Notifications System:** Real-time in-app notification center (pages/Notifications.tsx)
+  - Bell icon in header with unread indicator (red dot)
+  - Notification types: email, system, merchant, payment
+  - Features: Mark as read, delete individual, clear all
+  - Stored per-user in localStorage (50 notification limit)
+  - Auto-sends notifications on: registration, password reset, SMTP test, subscription changes
+- **Notification Service:** Auto-notification triggers (utils/notificationService.ts)
+  - Welcome notification on registration
+  - Email verification notification with code display
+  - Password reset confirmation
+  - SMTP test success/failure alerts
+  - Subscription upgrade/downgrade notifications
+  - Low search quota warnings (for paid plans)
+  - Merchant approval/rejection notifications
+- **SMTP Test Enhanced:** Test email functionality in admin panel
+  - Email recipient selection dialog
+  - Sends formatted test email using configured SMTP settings
+  - Auto-creates notification on success/failure
+  - Validation checks: SMTP enabled, host/username/password configured
+- **Integration Points:**
+  - AuthContext: Sends welcome + verification emails on register()
+  - ForgotPassword: Sends reset emails and notifications
+  - AdminPaymentSettings: SMTP test with notification feedback
+  - Header: Bell icon button linking to /notifications page
+
 ## November 4, 2025 - Complete Subscription System with Rate Limiting & Paymob Integration
 - **Subscription System Fully Implemented:**
   - User subscription fields added to KV store: subscription_plan, searches_count, searches_limit, subscription_expires_at, payment_status, last_search_reset
