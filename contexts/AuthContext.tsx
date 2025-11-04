@@ -77,8 +77,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (email: string, password: string, name: string) => {
     try {
-      await authApi.register({ email, password, name });
-      // Auto login after registration
+      const response = await authApi.register({ email, password, name });
+      
+      const { generateVerificationCode, sendEmail, emailTemplates } = await import('../utils/emailTemplates');
+      const verificationCode = generateVerificationCode();
+      
+      localStorage.setItem(`verification_code_${email}`, JSON.stringify({
+        code: verificationCode,
+        timestamp: Date.now(),
+        expires: Date.now() + 10 * 60 * 1000,
+        userId: response.user?.id
+      }));
+
+      const currentLang = (localStorage.getItem('language') || 'ar') as 'ar' | 'en';
+      const welcomeTemplate = emailTemplates.welcome(name, currentLang);
+      const verifyTemplate = emailTemplates.verification(name, verificationCode, currentLang);
+      
+      await sendEmail(email, welcomeTemplate.subject, welcomeTemplate.body);
+      await sendEmail(email, verifyTemplate.subject, verifyTemplate.body);
+      
+      console.log('📧 Welcome & verification emails sent (code:', verificationCode, ')');
+      
       await login(email, password);
     } catch (error) {
       console.error('Registration failed:', error);

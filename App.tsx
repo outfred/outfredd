@@ -28,6 +28,7 @@ import { Statistics } from './pages/Statistics';
 import { MerchantStorePage } from './pages/MerchantStorePage';
 import { OutfitGenerator } from './pages/OutfitGenerator';
 import { Pricing } from './pages/Pricing';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Toaster } from './components/ui/sonner';
 
 type Page = 
@@ -38,6 +39,7 @@ type Page =
   | 'join' 
   | 'login' 
   | 'register' 
+  | 'forgot-password'
   | 'admin'
   | 'admin-site-settings'
   | 'admin-ai-settings'
@@ -203,6 +205,8 @@ export default function App() {
         return <Auth mode="login" onSuccess={() => handleNavigate('home')} />;
       case 'register':
         return <Auth mode="register" onSuccess={() => handleNavigate('home')} />;
+      case 'forgot-password':
+        return <ForgotPassword onNavigate={handleNavigate} />;
       case 'account-settings':
         return <AccountSettings />;
       case 'admin':

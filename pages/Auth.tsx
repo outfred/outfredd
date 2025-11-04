@@ -153,6 +153,18 @@ export const Auth: React.FC<AuthProps> = ({ mode, onSuccess }) => {
               </Button>
             </form>
 
+            {/* Forgot Password Link */}
+            {mode === 'login' && (
+              <div className="mt-4 text-center">
+                <a
+                  href="#forgot-password"
+                  className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 underline"
+                >
+                  Forgot Password?
+                </a>
+              </div>
+            )}
+
             {/* Demo Account Info */}
             {mode === 'login' && (
               <>
