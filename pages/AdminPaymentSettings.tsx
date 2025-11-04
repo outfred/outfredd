@@ -1,47 +1,143 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
-import { CreditCard, DollarSign, Key } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import { CreditCard, Key, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { paymentApi, smtpApi } from '../utils/adminApi';
 
 export const AdminPaymentSettings: React.FC = () => {
   const { language } = useLanguage();
   
   const [paymobSettings, setPaymobSettings] = useState({
-    apiKey: '',
-    secretKey: '',
-    integrationId: '',
-    iframeId: '',
-    isEnabled: false,
-    isTestMode: true,
+    api_key: '',
+    secret_key: '',
+    integration_id: '',
+    hmac_secret: '',
+    iframe_id: '',
+    is_enabled: false,
+    is_test_mode: true,
   });
 
   const [smtpSettings, setSmtpSettings] = useState({
     host: '',
-    port: '587',
+    port: 587,
     username: '',
     password: '',
-    fromEmail: '',
-    fromName: 'Outfred',
-    isEnabled: false,
+    from_email: '',
+    from_name: 'Outfred',
+    encryption: 'tls',
+    is_enabled: false,
   });
 
-  const handleSavePaymob = () => {
-    toast.success(language === 'ar' ? 'تم حفظ إعدادات الدفع' : 'Payment settings saved');
+  const [loading, setLoading] = useState(false);
+  const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const [paymentRes, smtpRes] = await Promise.all([
+        paymentApi.get(),
+        smtpApi.get()
+      ]);
+      
+      if (paymentRes.settings) {
+        setPaymobSettings({
+          api_key: paymentRes.settings.api_key || '',
+          secret_key: paymentRes.settings.secret_key || '',
+          integration_id: paymentRes.settings.integration_id || '',
+          hmac_secret: paymentRes.settings.hmac_secret || '',
+          iframe_id: paymentRes.settings.iframe_id || '',
+          is_enabled: paymentRes.settings.is_enabled || false,
+          is_test_mode: paymentRes.settings.is_test_mode !== false,
+        });
+      }
+      
+      if (smtpRes.settings) {
+        setSmtpSettings({
+          host: smtpRes.settings.host || '',
+          port: smtpRes.settings.port || 587,
+          username: smtpRes.settings.username || '',
+          password: smtpRes.settings.password || '',
+          from_email: smtpRes.settings.from_email || '',
+          from_name: smtpRes.settings.from_name || 'Outfred',
+          encryption: smtpRes.settings.encryption || 'tls',
+          is_enabled: smtpRes.settings.is_enabled || false,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+      toast.error(language === 'ar' ? 'فشل تحميل الإعدادات' : 'Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveSMTP = () => {
-    toast.success(language === 'ar' ? 'تم حفظ إعدادات البريد' : 'Email settings saved');
+  const handleSavePaymob = async () => {
+    try {
+      setLoading(true);
+      await paymentApi.update(paymobSettings);
+      toast.success(language === 'ar' ? 'تم حفظ إعدادات الدفع' : 'Payment settings saved');
+    } catch (error) {
+      console.error('Failed to save payment settings:', error);
+      toast.error(language === 'ar' ? 'فشل حفظ إعدادات الدفع' : 'Failed to save payment settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSMTP = async () => {
+    try {
+      setLoading(true);
+      await smtpApi.update(smtpSettings);
+      toast.success(language === 'ar' ? 'تم حفظ إعدادات البريد' : 'Email settings saved');
+    } catch (error) {
+      console.error('Failed to save SMTP settings:', error);
+      toast.error(language === 'ar' ? 'فشل حفظ إعدادات البريد' : 'Failed to save email settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTestSMTP = async () => {
-    toast.info(language === 'ar' ? 'جاري إرسال رسالة تجريبية...' : 'Sending test email...');
-    // TODO: Implement test email
+    if (!testEmail) {
+      toast.error(language === 'ar' ? 'الرجاء إدخال البريد الإلكتروني' : 'Please enter email address');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const result = await smtpApi.sendTest(testEmail);
+      toast.success(result.message || (language === 'ar' ? 'تم إرسال رسالة تجريبية' : 'Test email sent'));
+      setShowTestEmailDialog(false);
+      setTestEmail('');
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      toast.error(language === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send test email');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading && !paymobSettings.api_key && !smtpSettings.host) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-muted-foreground">
+          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -74,8 +170,8 @@ export const AdminPaymentSettings: React.FC = () => {
               </p>
             </div>
             <Switch
-              checked={paymobSettings.isEnabled}
-              onCheckedChange={(checked) => setPaymobSettings({ ...paymobSettings, isEnabled: checked })}
+              checked={paymobSettings.is_enabled}
+              onCheckedChange={(checked) => setPaymobSettings({ ...paymobSettings, is_enabled: checked })}
             />
           </div>
 
@@ -89,8 +185,8 @@ export const AdminPaymentSettings: React.FC = () => {
               </p>
             </div>
             <Switch
-              checked={paymobSettings.isTestMode}
-              onCheckedChange={(checked) => setPaymobSettings({ ...paymobSettings, isTestMode: checked })}
+              checked={paymobSettings.is_test_mode}
+              onCheckedChange={(checked) => setPaymobSettings({ ...paymobSettings, is_test_mode: checked })}
             />
           </div>
 
@@ -98,8 +194,8 @@ export const AdminPaymentSettings: React.FC = () => {
             <Label>{language === 'ar' ? 'مفتاح API' : 'API Key'}</Label>
             <Input
               type="password"
-              value={paymobSettings.apiKey}
-              onChange={(e) => setPaymobSettings({ ...paymobSettings, apiKey: e.target.value })}
+              value={paymobSettings.api_key}
+              onChange={(e) => setPaymobSettings({ ...paymobSettings, api_key: e.target.value })}
               placeholder="ZXlKMGVYQWlPaUpL..."
             />
           </div>
@@ -108,8 +204,8 @@ export const AdminPaymentSettings: React.FC = () => {
             <Label>{language === 'ar' ? 'المفتاح السري' : 'Secret Key'}</Label>
             <Input
               type="password"
-              value={paymobSettings.secretKey}
-              onChange={(e) => setPaymobSettings({ ...paymobSettings, secretKey: e.target.value })}
+              value={paymobSettings.secret_key}
+              onChange={(e) => setPaymobSettings({ ...paymobSettings, secret_key: e.target.value })}
               placeholder="sk_..."
             />
           </div>
@@ -118,23 +214,33 @@ export const AdminPaymentSettings: React.FC = () => {
             <div>
               <Label>{language === 'ar' ? 'Integration ID' : 'Integration ID'}</Label>
               <Input
-                value={paymobSettings.integrationId}
-                onChange={(e) => setPaymobSettings({ ...paymobSettings, integrationId: e.target.value })}
+                value={paymobSettings.integration_id}
+                onChange={(e) => setPaymobSettings({ ...paymobSettings, integration_id: e.target.value })}
                 placeholder="123456"
               />
             </div>
             <div>
               <Label>{language === 'ar' ? 'Iframe ID' : 'Iframe ID'}</Label>
               <Input
-                value={paymobSettings.iframeId}
-                onChange={(e) => setPaymobSettings({ ...paymobSettings, iframeId: e.target.value })}
+                value={paymobSettings.iframe_id}
+                onChange={(e) => setPaymobSettings({ ...paymobSettings, iframe_id: e.target.value })}
                 placeholder="654321"
               />
             </div>
           </div>
 
-          <Button onClick={handleSavePaymob} className="w-full">
-            {language === 'ar' ? 'حفظ إعدادات Paymob' : 'Save Paymob Settings'}
+          <div>
+            <Label>{language === 'ar' ? 'HMAC Secret' : 'HMAC Secret'}</Label>
+            <Input
+              type="password"
+              value={paymobSettings.hmac_secret}
+              onChange={(e) => setPaymobSettings({ ...paymobSettings, hmac_secret: e.target.value })}
+              placeholder="hmac_..."
+            />
+          </div>
+
+          <Button onClick={handleSavePaymob} className="w-full" disabled={loading}>
+            {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ إعدادات Paymob' : 'Save Paymob Settings')}
           </Button>
         </div>
       </Card>
@@ -159,8 +265,8 @@ export const AdminPaymentSettings: React.FC = () => {
               </p>
             </div>
             <Switch
-              checked={smtpSettings.isEnabled}
-              onCheckedChange={(checked) => setSmtpSettings({ ...smtpSettings, isEnabled: checked })}
+              checked={smtpSettings.is_enabled}
+              onCheckedChange={(checked) => setSmtpSettings({ ...smtpSettings, is_enabled: checked })}
             />
           </div>
 
@@ -176,8 +282,9 @@ export const AdminPaymentSettings: React.FC = () => {
             <div>
               <Label>{language === 'ar' ? 'المنفذ' : 'Port'}</Label>
               <Input
+                type="number"
                 value={smtpSettings.port}
-                onChange={(e) => setSmtpSettings({ ...smtpSettings, port: e.target.value })}
+                onChange={(e) => setSmtpSettings({ ...smtpSettings, port: parseInt(e.target.value) || 587 })}
                 placeholder="587"
               />
             </div>
@@ -207,31 +314,70 @@ export const AdminPaymentSettings: React.FC = () => {
             <div>
               <Label>{language === 'ar' ? 'البريد المُرسل' : 'From Email'}</Label>
               <Input
-                value={smtpSettings.fromEmail}
-                onChange={(e) => setSmtpSettings({ ...smtpSettings, fromEmail: e.target.value })}
+                value={smtpSettings.from_email}
+                onChange={(e) => setSmtpSettings({ ...smtpSettings, from_email: e.target.value })}
                 placeholder="noreply@outfred.com"
               />
             </div>
             <div>
               <Label>{language === 'ar' ? 'اسم المُرسل' : 'From Name'}</Label>
               <Input
-                value={smtpSettings.fromName}
-                onChange={(e) => setSmtpSettings({ ...smtpSettings, fromName: e.target.value })}
+                value={smtpSettings.from_name}
+                onChange={(e) => setSmtpSettings({ ...smtpSettings, from_name: e.target.value })}
                 placeholder="Outfred"
               />
             </div>
           </div>
 
           <div className="flex gap-3">
-            <Button onClick={handleSaveSMTP} className="flex-1">
-              {language === 'ar' ? 'حفظ إعدادات SMTP' : 'Save SMTP Settings'}
+            <Button onClick={handleSaveSMTP} className="flex-1" disabled={loading}>
+              {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ إعدادات SMTP' : 'Save SMTP Settings')}
             </Button>
-            <Button variant="outline" onClick={handleTestSMTP}>
+            <Button variant="outline" onClick={() => setShowTestEmailDialog(true)} disabled={loading}>
+              <Mail className="w-4 h-4 mr-2" />
               {language === 'ar' ? 'إرسال رسالة تجريبية' : 'Send Test Email'}
             </Button>
           </div>
         </div>
       </Card>
+
+      {/* Test Email Dialog */}
+      <Dialog open={showTestEmailDialog} onOpenChange={setShowTestEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'إرسال رسالة تجريبية' : 'Send Test Email'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ar' ? 'أدخل البريد الإلكتروني الذي تريد إرسال الرسالة التجريبية إليه' : 'Enter the email address where you want to send the test email'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label>{language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}</Label>
+              <Input
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="test@example.com"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleTestSMTP();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowTestEmailDialog(false)}>
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </Button>
+              <Button className="flex-1" onClick={handleTestSMTP} disabled={loading || !testEmail}>
+                {loading ? (language === 'ar' ? 'جاري الإرسال...' : 'Sending...') : (language === 'ar' ? 'إرسال' : 'Send')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

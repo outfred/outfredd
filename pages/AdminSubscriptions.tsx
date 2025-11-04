@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { Package, Users, Store, Plus, Edit, Trash2, Crown, Zap, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import { subscriptionsApi } from '../utils/adminApi';
 
 export const AdminSubscriptions: React.FC = () => {
   const { language } = useLanguage();
@@ -35,99 +36,181 @@ export const AdminSubscriptions: React.FC = () => {
     return language === 'ar' ? descriptions[id]?.ar : descriptions[id]?.en;
   };
 
-  // User Plans
   const [userPlans, setUserPlans] = useState([
     {
       id: 'free',
       price: 0,
-      outfitsLimit: 1,
-      searchesLimit: 5,
-      isActive: true,
+      outfits_limit: 1,
+      searches_limit: 5,
+      is_active: true,
     },
     {
       id: 'basic',
       price: 99,
-      outfitsLimit: 10,
-      searchesLimit: 50,
-      isActive: true,
+      outfits_limit: 10,
+      searches_limit: 50,
+      is_active: true,
     },
     {
       id: 'pro',
       price: 199,
-      outfitsLimit: -1,
-      searchesLimit: -1,
-      isActive: true,
+      outfits_limit: -1,
+      searches_limit: -1,
+      is_active: true,
     },
   ]);
 
-  // Merchant Plans
   const [merchantPlans, setMerchantPlans] = useState([
     {
       id: 'basic',
       price: 299,
-      promotionLevel: 0,
-      productsLimit: 100,
-      isActive: true,
+      promotion_level: 0,
+      products_limit: 100,
+      is_active: true,
     },
     {
       id: 'silver',
       price: 599,
-      promotionLevel: 1,
-      productsLimit: 500,
-      isActive: true,
+      promotion_level: 1,
+      products_limit: 500,
+      is_active: true,
     },
     {
       id: 'gold',
       price: 999,
-      promotionLevel: 2,
-      productsLimit: -1,
-      isActive: true,
+      promotion_level: 2,
+      products_limit: -1,
+      is_active: true,
     },
   ]);
 
+  const [loading, setLoading] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<any>(null);
   const [planForm, setPlanForm] = useState({
     name: '',
     price: '',
-    outfitsLimit: '',
-    searchesLimit: '',
-    productsLimit: '',
-    promotionLevel: '',
+    outfits_limit: '',
+    searches_limit: '',
+    products_limit: '',
+    promotion_level: '',
     description: '',
   });
+
+  useEffect(() => {
+    loadSubscriptions();
+  }, []);
+
+  const loadSubscriptions = async () => {
+    try {
+      setLoading(true);
+      const response = await subscriptionsApi.getAll();
+      
+      if (response.subscriptions) {
+        const userSubs = response.subscriptions.filter((s: any) => s.type === 'user');
+        const merchantSubs = response.subscriptions.filter((s: any) => s.type === 'merchant');
+        
+        if (userSubs.length > 0) {
+          setUserPlans(userSubs);
+        }
+        if (merchantSubs.length > 0) {
+          setMerchantPlans(merchantSubs);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load subscriptions:', error);
+      toast.error(language === 'ar' ? 'فشل تحميل الباقات' : 'Failed to load subscriptions');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEditPlan = (plan: any) => {
     setEditingPlan(plan);
     setPlanForm({
       name: getPlanName(plan.id),
       price: plan.price.toString(),
-      outfitsLimit: plan.outfitsLimit?.toString() || '',
-      searchesLimit: plan.searchesLimit?.toString() || '',
-      productsLimit: plan.productsLimit?.toString() || '',
-      promotionLevel: plan.promotionLevel?.toString() || '',
+      outfits_limit: plan.outfits_limit?.toString() || '',
+      searches_limit: plan.searches_limit?.toString() || '',
+      products_limit: plan.products_limit?.toString() || '',
+      promotion_level: plan.promotion_level?.toString() || '',
       description: getDescription(plan.id) || '',
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleSavePlan = () => {
-    toast.success(language === 'ar' ? 'تم حفظ الباقة' : 'Plan saved successfully');
-    setIsEditDialogOpen(false);
+  const handleSavePlan = async () => {
+    if (!editingPlan) return;
+    
+    try {
+      setLoading(true);
+      const updatedData: any = {
+        price: parseInt(planForm.price),
+      };
+      
+      if (planForm.outfits_limit) {
+        updatedData.outfits_limit = parseInt(planForm.outfits_limit);
+      }
+      if (planForm.searches_limit) {
+        updatedData.searches_limit = parseInt(planForm.searches_limit);
+      }
+      if (planForm.products_limit) {
+        updatedData.products_limit = parseInt(planForm.products_limit);
+      }
+      if (planForm.promotion_level) {
+        updatedData.promotion_level = parseInt(planForm.promotion_level);
+      }
+      
+      await subscriptionsApi.update(editingPlan.id, updatedData);
+      toast.success(language === 'ar' ? 'تم حفظ الباقة' : 'Plan saved successfully');
+      setIsEditDialogOpen(false);
+      await loadSubscriptions();
+    } catch (error) {
+      console.error('Failed to save plan:', error);
+      toast.error(language === 'ar' ? 'فشل حفظ الباقة' : 'Failed to save plan');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTogglePlan = (planId: string, type: 'user' | 'merchant') => {
-    if (type === 'user') {
-      setUserPlans(userPlans.map(p => 
-        p.id === planId ? { ...p, isActive: !p.isActive } : p
-      ));
-    } else {
-      setMerchantPlans(merchantPlans.map(p => 
-        p.id === planId ? { ...p, isActive: !p.isActive } : p
-      ));
+  const handleTogglePlan = async (planId: string, type: 'user' | 'merchant') => {
+    try {
+      setLoading(true);
+      const plans = type === 'user' ? userPlans : merchantPlans;
+      const plan = plans.find(p => p.id === planId);
+      
+      if (!plan) return;
+      
+      await subscriptionsApi.update(planId, { is_active: !plan.is_active });
+      
+      if (type === 'user') {
+        setUserPlans(userPlans.map(p => 
+          p.id === planId ? { ...p, is_active: !p.is_active } : p
+        ));
+      } else {
+        setMerchantPlans(merchantPlans.map(p => 
+          p.id === planId ? { ...p, is_active: !p.is_active } : p
+        ));
+      }
+      
+      toast.success(language === 'ar' ? 'تم تحديث حالة الباقة' : 'Plan status updated');
+    } catch (error) {
+      console.error('Failed to toggle plan:', error);
+      toast.error(language === 'ar' ? 'فشل تحديث حالة الباقة' : 'Failed to update plan status');
+    } finally {
+      setLoading(false);
     }
-    toast.success(language === 'ar' ? 'تم تحديث حالة الباقة' : 'Plan status updated');
   };
+
+  if (loading && userPlans.length === 0) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-muted-foreground">
+          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -163,7 +246,7 @@ export const AdminSubscriptions: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className={`p-6 glass-effect relative ${!plan.isActive ? 'opacity-50' : ''}`}>
+                <Card className={`p-6 glass-effect relative ${!plan.is_active ? 'opacity-50' : ''}`}>
                   {plan.id === 'pro' && (
                     <div className="absolute -top-3 right-6">
                       <Badge className="bg-gradient-to-r from-purple-600 to-pink-600">
@@ -187,18 +270,18 @@ export const AdminSubscriptions: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
                       <span>
-                        {plan.outfitsLimit === -1 
+                        {plan.outfits_limit === -1 
                           ? (language === 'ar' ? 'أزياء غير محدودة' : 'Unlimited outfits')
-                          : `${plan.outfitsLimit} ${language === 'ar' ? 'زي' : 'outfits'}`
+                          : `${plan.outfits_limit} ${language === 'ar' ? 'زي' : 'outfits'}`
                         }
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-primary" />
                       <span>
-                        {plan.searchesLimit === -1 
+                        {plan.searches_limit === -1 
                           ? (language === 'ar' ? 'بحث غير محدود' : 'Unlimited searches')
-                          : `${plan.searchesLimit} ${language === 'ar' ? 'عملية بحث' : 'searches'}`
+                          : `${plan.searches_limit} ${language === 'ar' ? 'عملية بحث' : 'searches'}`
                         }
                       </span>
                     </div>
@@ -210,8 +293,9 @@ export const AdminSubscriptions: React.FC = () => {
                         {language === 'ar' ? 'نشط' : 'Active'}
                       </span>
                       <Switch
-                        checked={plan.isActive}
+                        checked={plan.is_active}
                         onCheckedChange={() => handleTogglePlan(plan.id, 'user')}
+                        disabled={loading}
                       />
                     </div>
                     <Button
@@ -238,7 +322,7 @@ export const AdminSubscriptions: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className={`p-6 glass-effect relative ${!plan.isActive ? 'opacity-50' : ''}`}>
+                <Card className={`p-6 glass-effect relative ${!plan.is_active ? 'opacity-50' : ''}`}>
                   {plan.id === 'gold' && (
                     <div className="absolute -top-3 right-6">
                       <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
@@ -265,16 +349,16 @@ export const AdminSubscriptions: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4 text-primary" />
                       <span>
-                        {plan.productsLimit === -1 
+                        {plan.products_limit === -1 
                           ? (language === 'ar' ? 'منتجات غير محدودة' : 'Unlimited products')
-                          : `${plan.productsLimit} ${language === 'ar' ? 'منتج' : 'products'}`
+                          : `${plan.products_limit} ${language === 'ar' ? 'منتج' : 'products'}`
                         }
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
                       <span>
-                        {language === 'ar' ? 'مستوى الترويج:' : 'Promotion level:'} {plan.promotionLevel}
+                        {language === 'ar' ? 'مستوى الترويج:' : 'Promotion level:'} {plan.promotion_level}
                       </span>
                     </div>
                   </div>
@@ -285,8 +369,9 @@ export const AdminSubscriptions: React.FC = () => {
                         {language === 'ar' ? 'نشط' : 'Active'}
                       </span>
                       <Switch
-                        checked={plan.isActive}
+                        checked={plan.is_active}
                         onCheckedChange={() => handleTogglePlan(plan.id, 'merchant')}
+                        disabled={loading}
                       />
                     </div>
                     <Button
@@ -329,8 +414,8 @@ export const AdminSubscriptions: React.FC = () => {
                 onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
               />
             </div>
-            <Button onClick={handleSavePlan} className="w-full">
-              {language === 'ar' ? 'حفظ' : 'Save'}
+            <Button onClick={handleSavePlan} className="w-full" disabled={loading}>
+              {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save')}
             </Button>
           </div>
         </DialogContent>

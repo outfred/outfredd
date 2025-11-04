@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -9,28 +9,29 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { FileText, Save, Eye } from 'lucide-react';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
+import { cmsApi } from '../utils/adminApi';
 
 export const AdminCMS: React.FC = () => {
   const { language } = useLanguage();
   
   const [pages, setPages] = useState({
     about: {
-      titleAr: 'من نحن',
-      titleEn: 'About Us',
-      contentAr: 'نحن منصة Outfred لاكتشاف الأزياء...',
-      contentEn: 'We are Outfred, a fashion discovery platform...',
+      title_ar: 'من نحن',
+      title_en: 'About Us',
+      content_ar: 'نحن منصة Outfred لاكتشاف الأزياء...',
+      content_en: 'We are Outfred, a fashion discovery platform...',
     },
     privacy: {
-      titleAr: 'سياسة الخصوصية',
-      titleEn: 'Privacy Policy',
-      contentAr: 'سياسة الخصوصية الخاصة بنا...',
-      contentEn: 'Our privacy policy...',
+      title_ar: 'سياسة الخصوصية',
+      title_en: 'Privacy Policy',
+      content_ar: 'سياسة الخصوصية الخاصة بنا...',
+      content_en: 'Our privacy policy...',
     },
     contact: {
-      titleAr: 'اتصل بنا',
-      titleEn: 'Contact Us',
-      contentAr: 'للتواصل معنا...',
-      contentEn: 'To contact us...',
+      title_ar: 'اتصل بنا',
+      title_en: 'Contact Us',
+      content_ar: 'للتواصل معنا...',
+      content_en: 'To contact us...',
       email: 'contact@outfred.com',
       phone: '+1234567890',
       address: '123 Fashion Street',
@@ -38,10 +39,50 @@ export const AdminCMS: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState('about');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = (pageKey: string) => {
-    toast.success(language === 'ar' ? 'تم حفظ الصفحة بنجاح' : 'Page saved successfully');
+  useEffect(() => {
+    loadPages();
+  }, []);
+
+  const loadPages = async () => {
+    try {
+      setLoading(true);
+      const response = await cmsApi.getAll();
+      
+      if (response.pages) {
+        setPages(response.pages);
+      }
+    } catch (error) {
+      console.error('Failed to load CMS pages:', error);
+      toast.error(language === 'ar' ? 'فشل تحميل الصفحات' : 'Failed to load pages');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async (pageKey: string) => {
+    try {
+      setLoading(true);
+      await cmsApi.updatePage(pageKey, pages[pageKey as keyof typeof pages]);
+      toast.success(language === 'ar' ? 'تم حفظ الصفحة بنجاح' : 'Page saved successfully');
+    } catch (error) {
+      console.error('Failed to save page:', error);
+      toast.error(language === 'ar' ? 'فشل حفظ الصفحة' : 'Failed to save page');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !pages.about.title_ar) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-muted-foreground">
+          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -75,20 +116,20 @@ export const AdminCMS: React.FC = () => {
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
                   <Input
-                    value={pages.about.titleAr}
+                    value={pages.about.title_ar}
                     onChange={(e) => setPages({
                       ...pages,
-                      about: { ...pages.about, titleAr: e.target.value }
+                      about: { ...pages.about, title_ar: e.target.value }
                     })}
                   />
                 </div>
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
                   <Input
-                    value={pages.about.titleEn}
+                    value={pages.about.title_en}
                     onChange={(e) => setPages({
                       ...pages,
-                      about: { ...pages.about, titleEn: e.target.value }
+                      about: { ...pages.about, title_en: e.target.value }
                     })}
                   />
                 </div>
@@ -97,10 +138,10 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
                 <Textarea
-                  value={pages.about.contentAr}
+                  value={pages.about.content_ar}
                   onChange={(e) => setPages({
                     ...pages,
-                    about: { ...pages.about, contentAr: e.target.value }
+                    about: { ...pages.about, content_ar: e.target.value }
                   })}
                   rows={10}
                   className="font-mono"
@@ -110,10 +151,10 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
                 <Textarea
-                  value={pages.about.contentEn}
+                  value={pages.about.content_en}
                   onChange={(e) => setPages({
                     ...pages,
-                    about: { ...pages.about, contentEn: e.target.value }
+                    about: { ...pages.about, content_en: e.target.value }
                   })}
                   rows={10}
                   className="font-mono"
@@ -121,9 +162,9 @@ export const AdminCMS: React.FC = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={() => handleSave('about')} className="flex-1">
+                <Button onClick={() => handleSave('about')} className="flex-1" disabled={loading}>
                   <Save className="w-4 h-4 mr-2" />
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save')}
                 </Button>
                 <Button variant="outline">
                   <Eye className="w-4 h-4 mr-2" />
@@ -142,20 +183,20 @@ export const AdminCMS: React.FC = () => {
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
                   <Input
-                    value={pages.privacy.titleAr}
+                    value={pages.privacy.title_ar}
                     onChange={(e) => setPages({
                       ...pages,
-                      privacy: { ...pages.privacy, titleAr: e.target.value }
+                      privacy: { ...pages.privacy, title_ar: e.target.value }
                     })}
                   />
                 </div>
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
                   <Input
-                    value={pages.privacy.titleEn}
+                    value={pages.privacy.title_en}
                     onChange={(e) => setPages({
                       ...pages,
-                      privacy: { ...pages.privacy, titleEn: e.target.value }
+                      privacy: { ...pages.privacy, title_en: e.target.value }
                     })}
                   />
                 </div>
@@ -164,10 +205,10 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
                 <Textarea
-                  value={pages.privacy.contentAr}
+                  value={pages.privacy.content_ar}
                   onChange={(e) => setPages({
                     ...pages,
-                    privacy: { ...pages.privacy, contentAr: e.target.value }
+                    privacy: { ...pages.privacy, content_ar: e.target.value }
                   })}
                   rows={10}
                   className="font-mono"
@@ -177,10 +218,10 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
                 <Textarea
-                  value={pages.privacy.contentEn}
+                  value={pages.privacy.content_en}
                   onChange={(e) => setPages({
                     ...pages,
-                    privacy: { ...pages.privacy, contentEn: e.target.value }
+                    privacy: { ...pages.privacy, content_en: e.target.value }
                   })}
                   rows={10}
                   className="font-mono"
@@ -188,9 +229,9 @@ export const AdminCMS: React.FC = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={() => handleSave('privacy')} className="flex-1">
+                <Button onClick={() => handleSave('privacy')} className="flex-1" disabled={loading}>
                   <Save className="w-4 h-4 mr-2" />
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save')}
                 </Button>
                 <Button variant="outline">
                   <Eye className="w-4 h-4 mr-2" />
@@ -209,20 +250,20 @@ export const AdminCMS: React.FC = () => {
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (عربي)' : 'Title (Arabic)'}</Label>
                   <Input
-                    value={pages.contact.titleAr}
+                    value={pages.contact.title_ar}
                     onChange={(e) => setPages({
                       ...pages,
-                      contact: { ...pages.contact, titleAr: e.target.value }
+                      contact: { ...pages.contact, title_ar: e.target.value }
                     })}
                   />
                 </div>
                 <div>
                   <Label>{language === 'ar' ? 'العنوان (إنجليزي)' : 'Title (English)'}</Label>
                   <Input
-                    value={pages.contact.titleEn}
+                    value={pages.contact.title_en}
                     onChange={(e) => setPages({
                       ...pages,
-                      contact: { ...pages.contact, titleEn: e.target.value }
+                      contact: { ...pages.contact, title_en: e.target.value }
                     })}
                   />
                 </div>
@@ -264,10 +305,10 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (عربي)' : 'Content (Arabic)'}</Label>
                 <Textarea
-                  value={pages.contact.contentAr}
+                  value={pages.contact.content_ar}
                   onChange={(e) => setPages({
                     ...pages,
-                    contact: { ...pages.contact, contentAr: e.target.value }
+                    contact: { ...pages.contact, content_ar: e.target.value }
                   })}
                   rows={10}
                   className="font-mono"
@@ -277,20 +318,20 @@ export const AdminCMS: React.FC = () => {
               <div>
                 <Label>{language === 'ar' ? 'المحتوى (إنجليزي)' : 'Content (English)'}</Label>
                 <Textarea
-                  value={pages.contact.contentEn}
+                  value={pages.contact.content_en}
                   onChange={(e) => setPages({
                     ...pages,
-                    contact: { ...pages.contact, contentEn: e.target.value }
-                  })}
+                    contact: { ...pages.contact, content_en: e.target.value }
+                    })}
                   rows={10}
                   className="font-mono"
                 />
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={() => handleSave('contact')} className="flex-1">
+                <Button onClick={() => handleSave('contact')} className="flex-1" disabled={loading}>
                   <Save className="w-4 h-4 mr-2" />
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {loading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save')}
                 </Button>
                 <Button variant="outline">
                   <Eye className="w-4 h-4 mr-2" />
