@@ -1,14 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/card';
 import { Info, Shield, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface StaticPageProps {
   page: 'about' | 'privacy' | 'contact';
 }
 
+interface CMSPage {
+  title_ar?: string;
+  title_en?: string;
+  content_ar?: string;
+  content_en?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
 export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
-  const content = {
+  const { language } = useLanguage();
+  const [cmsContent, setCmsContent] = useState<Record<string, CMSPage>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const storedPages = localStorage.getItem('admin_cms_pages');
+      if (storedPages) {
+        const parsed = JSON.parse(storedPages);
+        setCmsContent(parsed);
+      }
+    } catch (error) {
+      console.error('Failed to load CMS content:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const defaultContent = {
     about: {
       icon: Info,
       title: 'About Outfred',
@@ -81,8 +110,27 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     },
   };
 
-  const pageContent = content[page];
-  const Icon = pageContent.icon;
+  const defaultPageContent = defaultContent[page];
+  const Icon = defaultPageContent.icon;
+
+  const cmsPage = cmsContent[page];
+  const title = cmsPage
+    ? (language === 'ar' ? cmsPage.title_ar : cmsPage.title_en) || defaultPageContent.title
+    : defaultPageContent.title;
+  
+  const contentText = cmsPage
+    ? (language === 'ar' ? cmsPage.content_ar : cmsPage.content_en)
+    : null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">
+          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-12">
@@ -97,7 +145,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             <Icon className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-5xl mb-4 bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
-            {pageContent.title}
+            {title}
           </h1>
         </motion.div>
 
@@ -108,23 +156,53 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
           transition={{ delay: 0.2 }}
         >
           <Card className="backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border-white/20 p-8 md:p-12">
-            <div className="space-y-8">
-              {pageContent.sections.map((section, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                >
-                  <h2 className="text-2xl mb-4 bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
-                    {section.heading}
-                  </h2>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                    {section.text}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+            {contentText ? (
+              <div className="prose prose-lg max-w-none dark:prose-invert">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {contentText}
+                </p>
+                {page === 'contact' && cmsPage && (
+                  <div className="mt-8 space-y-4">
+                    {cmsPage.email && (
+                      <div>
+                        <h3 className="text-xl mb-2">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</h3>
+                        <p className="text-gray-700 dark:text-gray-300">{cmsPage.email}</p>
+                      </div>
+                    )}
+                    {cmsPage.phone && (
+                      <div>
+                        <h3 className="text-xl mb-2">{language === 'ar' ? 'الهاتف' : 'Phone'}</h3>
+                        <p className="text-gray-700 dark:text-gray-300">{cmsPage.phone}</p>
+                      </div>
+                    )}
+                    {cmsPage.address && (
+                      <div>
+                        <h3 className="text-xl mb-2">{language === 'ar' ? 'العنوان' : 'Address'}</h3>
+                        <p className="text-gray-700 dark:text-gray-300">{cmsPage.address}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {defaultPageContent.sections.map((section, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                  >
+                    <h2 className="text-2xl mb-4 bg-gradient-to-r from-indigo-600 to-pink-600 bg-clip-text text-transparent">
+                      {section.heading}
+                    </h2>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                      {section.text}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </Card>
         </motion.div>
 

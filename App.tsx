@@ -92,6 +92,59 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Apply SEO settings from Site Settings
+  React.useEffect(() => {
+    try {
+      const settings = localStorage.getItem('admin_site_settings');
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        if (parsed.seo) {
+          const currentLang = localStorage.getItem('language') || 'ar';
+          
+          const title = currentLang === 'ar' ? parsed.seo.title_ar : parsed.seo.title_en;
+          const description = currentLang === 'ar' ? parsed.seo.description_ar : parsed.seo.description_en;
+          const keywords = parsed.seo.keywords;
+          
+          if (title) {
+            document.title = title;
+          }
+          
+          if (description) {
+            let metaDesc = document.querySelector('meta[name="description"]');
+            if (!metaDesc) {
+              metaDesc = document.createElement('meta');
+              metaDesc.setAttribute('name', 'description');
+              document.head.appendChild(metaDesc);
+            }
+            metaDesc.setAttribute('content', description);
+          }
+          
+          if (keywords) {
+            let metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (!metaKeywords) {
+              metaKeywords = document.createElement('meta');
+              metaKeywords.setAttribute('name', 'keywords');
+              document.head.appendChild(metaKeywords);
+            }
+            metaKeywords.setAttribute('content', keywords);
+          }
+          
+          if (parsed.seo.favicon_url) {
+            let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+            if (!favicon) {
+              favicon = document.createElement('link');
+              favicon.setAttribute('rel', 'icon');
+              document.head.appendChild(favicon);
+            }
+            favicon.href = parsed.seo.favicon_url;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to apply SEO settings:', error);
+    }
+  }, [currentPage]);
+
   // Show helpful console message on first load
   React.useEffect(() => {
     console.log('%c🎯 Welcome to Outfred!', 'color: #6366f1; font-size: 20px; font-weight: bold;');

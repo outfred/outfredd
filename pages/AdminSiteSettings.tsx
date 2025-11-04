@@ -98,8 +98,14 @@ export const AdminSiteSettings: React.FC = () => {
   const handleSaveSEO = async () => {
     try {
       setLoading(true);
-      await siteSettingsApi.update('seo', seoSettings);
+      const allSettings = {
+        seo: seoSettings,
+        social: socialLinks,
+        contact: contactInfo
+      };
+      await siteSettingsApi.update(allSettings);
       toast.success(language === 'ar' ? 'تم حفظ إعدادات SEO' : 'SEO settings saved');
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Failed to save SEO settings:', error);
       toast.error(language === 'ar' ? 'فشل حفظ إعدادات SEO' : 'Failed to save SEO settings');
@@ -111,8 +117,14 @@ export const AdminSiteSettings: React.FC = () => {
   const handleSaveSocial = async () => {
     try {
       setLoading(true);
-      await siteSettingsApi.update('social', socialLinks);
+      const allSettings = {
+        seo: seoSettings,
+        social: socialLinks,
+        contact: contactInfo
+      };
+      await siteSettingsApi.update(allSettings);
       toast.success(language === 'ar' ? 'تم حفظ الروابط الاجتماعية' : 'Social links saved');
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Failed to save social links:', error);
       toast.error(language === 'ar' ? 'فشل حفظ الروابط الاجتماعية' : 'Failed to save social links');
@@ -124,8 +136,14 @@ export const AdminSiteSettings: React.FC = () => {
   const handleSaveContact = async () => {
     try {
       setLoading(true);
-      await siteSettingsApi.update('contact', contactInfo);
+      const allSettings = {
+        seo: seoSettings,
+        social: socialLinks,
+        contact: contactInfo
+      };
+      await siteSettingsApi.update(allSettings);
       toast.success(language === 'ar' ? 'تم حفظ معلومات التواصل' : 'Contact info saved');
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Failed to save contact info:', error);
       toast.error(language === 'ar' ? 'فشل حفظ معلومات التواصل' : 'Failed to save contact info');

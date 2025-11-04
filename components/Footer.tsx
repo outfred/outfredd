@@ -1,13 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Facebook, Twitter, Instagram, Mail } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Mail, Linkedin, Youtube } from 'lucide-react';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
 }
 
+interface SocialLinks {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+}
+
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const { t } = useLanguage();
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+
+  const loadSocialLinks = () => {
+    try {
+      const settings = localStorage.getItem('admin_site_settings');
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        if (parsed.social) {
+          setSocialLinks(parsed.social);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load social links:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadSocialLinks();
+    
+    const handleStorageChange = () => {
+      loadSocialLinks();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   return (
     <footer className="mt-20 backdrop-blur-xl bg-white/50 dark:bg-gray-900/50 border-t border-white/20">
@@ -87,31 +125,67 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           {/* Social */}
           <div>
             <h3 className="mb-4">Follow Us</h3>
-            <div className="flex gap-3">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-all"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-all"
-              >
-                <Mail className="w-5 h-5" />
-              </a>
+            <div className="flex gap-3 flex-wrap">
+              {socialLinks.facebook && (
+                <a
+                  href={socialLinks.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all"
+                  title="Facebook"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+              )}
+              {socialLinks.instagram && (
+                <a
+                  href={socialLinks.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all"
+                  title="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {socialLinks.twitter && (
+                <a
+                  href={socialLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-blue-400 hover:text-white transition-all"
+                  title="Twitter"
+                >
+                  <Twitter className="w-5 h-5" />
+                </a>
+              )}
+              {socialLinks.linkedin && (
+                <a
+                  href={socialLinks.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-blue-700 hover:text-white transition-all"
+                  title="LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
+                </a>
+              )}
+              {socialLinks.youtube && (
+                <a
+                  href={socialLinks.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/50 dark:bg-gray-800/50 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"
+                  title="YouTube"
+                >
+                  <Youtube className="w-5 h-5" />
+                </a>
+              )}
+              {!socialLinks.facebook && !socialLinks.instagram && !socialLinks.twitter && !socialLinks.linkedin && !socialLinks.youtube && (
+                <p className="text-sm text-muted-foreground">
+                  {t('language') === 'ar' ? 'لا توجد روابط اجتماعية' : 'No social links configured'}
+                </p>
+              )}
             </div>
           </div>
         </div>

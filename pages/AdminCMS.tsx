@@ -64,8 +64,14 @@ export const AdminCMS: React.FC = () => {
   const handleSave = async (pageKey: string) => {
     try {
       setLoading(true);
+      
+      localStorage.setItem('admin_cms_pages', JSON.stringify(pages));
+      
       await cmsApi.updatePage(pageKey, pages[pageKey as keyof typeof pages]);
+      
       toast.success(language === 'ar' ? 'تم حفظ الصفحة بنجاح' : 'Page saved successfully');
+      
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Failed to save page:', error);
       toast.error(language === 'ar' ? 'فشل حفظ الصفحة' : 'Failed to save page');
