@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Store, ExternalLink, MapPin, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
 import { merchantsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface MerchantsProps {
   onNavigate: (page: string, params?: any) => void;

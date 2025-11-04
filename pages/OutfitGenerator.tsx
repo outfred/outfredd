@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { productsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface OutfitGeneratorProps {
   onNavigate: (page: string, params?: any) => void;

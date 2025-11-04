@@ -10,7 +10,7 @@ import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { User, Heart, Settings, Mail, Calendar, Save, Edit2, Bell, Lock, Eye, Shield, Store } from 'lucide-react';
 import { motion } from 'motion/react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export const Account: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
   const { t, language } = useLanguage();

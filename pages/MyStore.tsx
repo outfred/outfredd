@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { merchantsApi, productsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend

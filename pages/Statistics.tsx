@@ -6,7 +6,7 @@ import { Separator } from '../components/ui/separator';
 import { Search, Eye, TrendingUp, Globe, Calendar, Package } from 'lucide-react';
 import { motion } from 'motion/react';
 import { statsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export const Statistics: React.FC = () => {
   const { language } = useLanguage();

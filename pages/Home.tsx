@@ -6,7 +6,7 @@ import { Card } from '../components/ui/card';
 import { Search, Image, Sparkles, TrendingUp, Package } from 'lucide-react';
 import { motion } from 'motion/react';
 import { productsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface HomeProps {
   onNavigate?: (page: string, productId?: string) => void;

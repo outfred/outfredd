@@ -7,7 +7,7 @@ import { Separator } from '../components/ui/separator';
 import { ArrowLeft, Package, Store, Heart, Share2, ShoppingCart } from 'lucide-react';
 import { motion } from 'motion/react';
 import { productsApi, merchantsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface ProductDetailsProps {
   productId: string;

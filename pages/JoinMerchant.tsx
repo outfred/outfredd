@@ -8,7 +8,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Store, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { merchantsApi } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export const JoinMerchant: React.FC = () => {
   const { t } = useLanguage();
