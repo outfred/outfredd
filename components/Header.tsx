@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Globe, Menu, X, User, LogOut, ShieldCheck, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import logo from 'figma:asset/dc93d49ca6f110dfea003149eea06295a54cf5b2.png';
+import logo from '../assets/dc93d49ca6f110dfea003149eea06295a54cf5b2.png';
 
 interface HeaderProps {
   onNavigate: (page: string) => void;
