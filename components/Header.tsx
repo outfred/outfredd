@@ -19,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage }) => {
   const navItems = [
     { key: 'home', label: t('home') },
     { key: 'merchants', label: t('merchants') },
+    { key: 'pricing', label: language === 'ar' ? '💎 الباقات' : '💎 Pricing' },
     ...(user ? [{ key: 'account', label: t('account') }] : []),
     ...(user && user.role === 'merchant' ? [{ key: 'my-store', label: language === 'ar' ? '🏪 متجري' : '🏪 My Store' }] : []),
     // Only show "Join as Merchant" if user is not already a merchant

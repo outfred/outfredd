@@ -224,6 +224,12 @@ app.post("/make-server-dec0bed9/auth/register", async (c) => {
       password: hashedPassword,
       name,
       role,
+      subscription_plan: 'free',
+      searches_count: 0,
+      searches_limit: 5,
+      subscription_expires_at: null,
+      payment_status: 'none',
+      last_search_reset: Date.now(),
       createdAt: new Date().toISOString(),
       favorites: [],
       settings: {}
@@ -796,7 +802,7 @@ app.post("/make-server-dec0bed9/products/import", async (c) => {
   }
 });
 
-// Search products (smart search)
+// Search products (smart search with rate limiting)
 app.post("/make-server-dec0bed9/products/search", async (c) => {
   try {
     const body = await c.req.json();
@@ -804,6 +810,58 @@ app.post("/make-server-dec0bed9/products/search", async (c) => {
 
     if (!query) {
       return c.json({ error: "Missing search query" }, 400);
+    }
+
+    // Check if user is authenticated for rate limiting
+    const user = await authenticate(c);
+    if (user) {
+      const userData = await kv.get(`user:${user.id}`);
+      
+      if (userData) {
+        const now = Date.now();
+        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+        
+        // Check if subscription is expired and downgrade to free
+        if (userData.subscription_expires_at && userData.subscription_expires_at < now) {
+          console.log('⚠️ Subscription expired, downgrading to free plan');
+          userData.subscription_plan = 'free';
+          userData.searches_limit = 5;
+          userData.subscription_expires_at = null;
+          userData.payment_status = 'expired';
+        }
+        
+        // Check if monthly reset is needed
+        const timeSinceReset = now - (userData.last_search_reset || now);
+        if (timeSinceReset > thirtyDaysInMs) {
+          console.log('🔄 Monthly reset - resetting search count');
+          userData.searches_count = 0;
+          userData.last_search_reset = now;
+        }
+        
+        // Check if user has reached search limit
+        if (userData.searches_count >= userData.searches_limit) {
+          const errorMessage = language === 'ar' 
+            ? 'لقد وصلت إلى حد البحث الشهري. يرجى الترقية للحصول على المزيد من عمليات البحث.'
+            : 'Search limit reached. Please upgrade your plan for more searches.';
+          
+          return c.json({ 
+            error: errorMessage,
+            error_ar: 'لقد وصلت إلى حد البحث الشهري. يرجى الترقية.',
+            error_en: 'Search limit reached. Please upgrade.',
+            searches_count: userData.searches_count,
+            searches_limit: userData.searches_limit,
+            subscription_plan: userData.subscription_plan
+          }, 429);
+        }
+        
+        // Increment search count
+        userData.searches_count += 1;
+        
+        // Save updated user data
+        await kv.set(`user:${user.id}`, userData);
+        
+        console.log(`✅ Search count updated: ${userData.searches_count}/${userData.searches_limit} (Plan: ${userData.subscription_plan})`);
+      }
     }
 
     // Get all products
@@ -875,6 +933,182 @@ app.post("/make-server-dec0bed9/products/outfit-generator", async (c) => {
   } catch (error) {
     console.log('Error generating outfit:', error);
     return c.json({ error: 'Outfit generation failed' }, 500);
+  }
+});
+
+// ======================
+// SUBSCRIPTION ROUTES
+// ======================
+
+// Get subscription plans
+app.get("/make-server-dec0bed9/api/subscriptions/plans", async (c) => {
+  try {
+    const plans = [
+      {
+        id: 'free',
+        name: 'Free',
+        name_ar: 'مجاني',
+        name_en: 'Free',
+        price: 0,
+        searches_limit: 5,
+        features: [
+          { en: '5 searches per month', ar: '5 عمليات بحث شهرياً' },
+          { en: 'Basic product search', ar: 'البحث الأساسي عن المنتجات' },
+          { en: 'Limited AI features', ar: 'ميزات AI محدودة' }
+        ],
+        popular: false
+      },
+      {
+        id: 'basic',
+        name: 'Basic',
+        name_ar: 'أساسي',
+        name_en: 'Basic',
+        price: 29,
+        searches_limit: 100,
+        features: [
+          { en: '100 searches per month', ar: '100 عملية بحث شهرياً' },
+          { en: 'Advanced product search', ar: 'البحث المتقدم عن المنتجات' },
+          { en: 'AI outfit generator', ar: 'مولد الأزياء بالذكاء الاصطناعي' },
+          { en: 'Priority support', ar: 'دعم ذو أولوية' }
+        ],
+        popular: true
+      },
+      {
+        id: 'pro',
+        name: 'Pro',
+        name_ar: 'احترافي',
+        name_en: 'Pro',
+        price: 99,
+        searches_limit: 999999,
+        features: [
+          { en: 'Unlimited searches', ar: 'عمليات بحث غير محدودة' },
+          { en: 'All AI features', ar: 'جميع ميزات الذكاء الاصطناعي' },
+          { en: 'Image search', ar: 'البحث بالصور' },
+          { en: 'Outfit generator', ar: 'مولد الأزياء' },
+          { en: '24/7 premium support', ar: 'دعم متميز على مدار الساعة' },
+          { en: 'API access', ar: 'الوصول إلى API' }
+        ],
+        popular: false
+      }
+    ];
+
+    return c.json({ plans });
+  } catch (error) {
+    console.log('Error getting subscription plans:', error);
+    return c.json({ error: 'Failed to get plans' }, 500);
+  }
+});
+
+// Get current user subscription
+app.get("/make-server-dec0bed9/api/subscriptions/current", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userData = await kv.get(`user:${user.id}`);
+    if (!userData) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
+    // Check if subscription is expired
+    const now = Date.now();
+    if (userData.subscription_expires_at && userData.subscription_expires_at < now) {
+      userData.subscription_plan = 'free';
+      userData.searches_limit = 5;
+      userData.subscription_expires_at = null;
+      userData.payment_status = 'expired';
+      await kv.set(`user:${user.id}`, userData);
+    }
+
+    // Check if monthly reset is needed
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const timeSinceReset = now - (userData.last_search_reset || now);
+    if (timeSinceReset > thirtyDaysInMs) {
+      userData.searches_count = 0;
+      userData.last_search_reset = now;
+      await kv.set(`user:${user.id}`, userData);
+    }
+
+    return c.json({
+      subscription: {
+        plan: userData.subscription_plan || 'free',
+        searches_count: userData.searches_count || 0,
+        searches_limit: userData.searches_limit || 5,
+        searches_remaining: (userData.searches_limit || 5) - (userData.searches_count || 0),
+        subscription_expires_at: userData.subscription_expires_at,
+        payment_status: userData.payment_status || 'none',
+        last_search_reset: userData.last_search_reset
+      }
+    });
+  } catch (error) {
+    console.log('Error getting current subscription:', error);
+    return c.json({ error: 'Failed to get subscription info' }, 500);
+  }
+});
+
+// Upgrade user subscription
+app.post("/make-server-dec0bed9/api/subscriptions/upgrade", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const body = await c.req.json();
+    const { plan } = body;
+
+    if (!plan || !['free', 'basic', 'pro'].includes(plan)) {
+      return c.json({ 
+        error: "Invalid plan",
+        error_ar: "باقة غير صالحة",
+        error_en: "Invalid plan"
+      }, 400);
+    }
+
+    const userData = await kv.get(`user:${user.id}`);
+    if (!userData) {
+      return c.json({ error: "User not found" }, 404);
+    }
+
+    // Set search limits based on plan
+    let searches_limit = 5;
+    if (plan === 'basic') searches_limit = 100;
+    if (plan === 'pro') searches_limit = 999999;
+
+    // Calculate expiration date (30 days from now for paid plans)
+    const now = Date.now();
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const subscription_expires_at = plan === 'free' ? null : now + thirtyDaysInMs;
+
+    // Update user subscription
+    userData.subscription_plan = plan;
+    userData.searches_limit = searches_limit;
+    userData.subscription_expires_at = subscription_expires_at;
+    userData.payment_status = plan === 'free' ? 'none' : 'active';
+    userData.searches_count = 0; // Reset search count on upgrade
+    userData.last_search_reset = now;
+
+    await kv.set(`user:${user.id}`, userData);
+
+    console.log(`✅ User ${user.email} upgraded to ${plan} plan`);
+
+    return c.json({
+      success: true,
+      message_en: `Successfully upgraded to ${plan} plan`,
+      message_ar: `تم الترقية بنجاح إلى باقة ${plan}`,
+      subscription: {
+        plan: userData.subscription_plan,
+        searches_count: userData.searches_count,
+        searches_limit: userData.searches_limit,
+        subscription_expires_at: userData.subscription_expires_at,
+        payment_status: userData.payment_status
+      }
+    });
+  } catch (error) {
+    console.log('Error upgrading subscription:', error);
+    return c.json({ error: 'Failed to upgrade subscription' }, 500);
   }
 });
 
@@ -983,6 +1217,96 @@ app.delete("/make-server-dec0bed9/admin/users/:id", async (c) => {
   } catch (error) {
     console.log('Error deleting user:', error);
     return c.json({ error: 'Failed to delete user' }, 500);
+  }
+});
+
+// Update user subscription (admin only)
+app.post("/make-server-dec0bed9/admin/users/:userId/subscription", async (c) => {
+  try {
+    const user = await authenticate(c);
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const userData = await kv.get(`user:${user.id}`);
+    if (userData?.role !== 'admin') {
+      return c.json({ 
+        error: "Admin access required",
+        error_ar: "يتطلب صلاحيات المسؤول",
+        error_en: "Admin access required"
+      }, 403);
+    }
+
+    const userId = c.req.param('userId');
+    const targetUser = await kv.get(`user:${userId}`);
+
+    if (!targetUser) {
+      return c.json({ 
+        error: "User not found",
+        error_ar: "المستخدم غير موجود",
+        error_en: "User not found"
+      }, 404);
+    }
+
+    const body = await c.req.json();
+    const { subscription_plan, searches_limit, subscription_expires_at, payment_status } = body;
+
+    // Validate subscription plan
+    if (subscription_plan && !['free', 'basic', 'pro'].includes(subscription_plan)) {
+      return c.json({ 
+        error: "Invalid subscription plan",
+        error_ar: "باقة اشتراك غير صالحة",
+        error_en: "Invalid subscription plan"
+      }, 400);
+    }
+
+    const now = Date.now();
+
+    // Update subscription fields
+    if (subscription_plan) {
+      targetUser.subscription_plan = subscription_plan;
+      
+      // Auto-set search limits if not provided
+      if (!searches_limit) {
+        if (subscription_plan === 'free') targetUser.searches_limit = 5;
+        else if (subscription_plan === 'basic') targetUser.searches_limit = 100;
+        else if (subscription_plan === 'pro') targetUser.searches_limit = 999999;
+      }
+    }
+
+    if (searches_limit !== undefined) {
+      targetUser.searches_limit = parseInt(searches_limit);
+    }
+
+    if (subscription_expires_at !== undefined) {
+      targetUser.subscription_expires_at = subscription_expires_at;
+    }
+
+    if (payment_status) {
+      targetUser.payment_status = payment_status;
+    }
+
+    // Reset search count and last reset time
+    targetUser.searches_count = 0;
+    targetUser.last_search_reset = now;
+    targetUser.updatedAt = new Date().toISOString();
+
+    await kv.set(`user:${userId}`, targetUser);
+
+    console.log(`✅ Admin updated subscription for user ${targetUser.email} to ${targetUser.subscription_plan} plan`);
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = targetUser;
+
+    return c.json({ 
+      success: true, 
+      message_en: `Subscription updated successfully for ${targetUser.email}`,
+      message_ar: `تم تحديث الاشتراك بنجاح لـ ${targetUser.email}`,
+      user: userWithoutPassword 
+    });
+  } catch (error: any) {
+    console.error('❌ Error updating user subscription:', error);
+    return c.json({ error: `Failed to update subscription: ${error?.message}` }, 500);
   }
 });
 

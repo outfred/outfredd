@@ -27,6 +27,7 @@ import { ProductDetails } from './pages/ProductDetails';
 import { Statistics } from './pages/Statistics';
 import { MerchantStorePage } from './pages/MerchantStorePage';
 import { OutfitGenerator } from './pages/OutfitGenerator';
+import { Pricing } from './pages/Pricing';
 import { Toaster } from './components/ui/sonner';
 
 type Page = 
@@ -55,7 +56,8 @@ type Page =
   | 'product'
   | 'statistics'
   | 'merchant-store'
-  | 'outfit-generator';
+  | 'outfit-generator'
+  | 'pricing';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -180,6 +182,8 @@ export default function App() {
         return <Statistics />;
       case 'outfit-generator':
         return <OutfitGenerator onNavigate={handleNavigate} />;
+      case 'pricing':
+        return <Pricing />;
       case 'about':
         return <StaticPages page="about" />;
       case 'privacy':

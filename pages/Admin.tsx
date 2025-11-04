@@ -10,13 +10,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Calendar } from '../components/ui/calendar';
 import { 
   Users, Store, Package, Settings, Layout, BarChart3, 
   Trash2, CheckCircle, XCircle, Shield, Plus, Edit, UserPlus, Save, Palette, Copy, Check,
-  Menu, Home, CreditCard, Mail, Bot, FileText, Layers, ChevronRight, Bug
+  Menu, Home, CreditCard, Mail, Bot, FileText, Layers, ChevronRight, Bug, Calendar as CalendarIcon
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { motion } from 'motion/react';
 import { adminApi, merchantsApi, productsApi } from '../utils/api';
+import { userSubscriptionApi } from '../utils/adminApi';
 import { toast } from 'sonner';
 import { copyToClipboard } from '../utils/clipboard';
 import { AdminDashboard } from './AdminDashboard';
@@ -88,6 +93,17 @@ export const Admin: React.FC = () => {
     email: '',
     role: '',
   });
+
+  const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
+  const [editingSubscription, setEditingSubscription] = useState<any>(null);
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    subscription_plan: 'Free',
+    searches_count: 0,
+    searches_limit: 5,
+    payment_status: 'none',
+    subscription_expires_at: null as Date | null,
+  });
+  const [savingSubscription, setSavingSubscription] = useState(false);
 
   const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
 
@@ -278,6 +294,75 @@ export const Admin: React.FC = () => {
       setTimeout(() => setCopiedUserId(null), 2000);
     } else {
       toast.error('Failed to copy User ID. Please copy it manually.');
+    }
+  };
+
+  const handleEditSubscription = (user: any) => {
+    setEditingSubscription(user);
+    const planLimits: { [key: string]: number } = {
+      'Free': 5,
+      'Basic': 100,
+      'Pro': 999999
+    };
+    
+    const currentPlan = user.subscription_plan || 'Free';
+    setSubscriptionForm({
+      subscription_plan: currentPlan,
+      searches_count: user.searches_count || 0,
+      searches_limit: user.searches_limit || planLimits[currentPlan] || 5,
+      payment_status: user.payment_status || 'none',
+      subscription_expires_at: user.subscription_expires_at ? new Date(user.subscription_expires_at) : null,
+    });
+    setIsSubscriptionDialogOpen(true);
+  };
+
+  const handleSubscriptionPlanChange = (plan: string) => {
+    const planLimits: { [key: string]: number } = {
+      'Free': 5,
+      'Basic': 100,
+      'Pro': 999999
+    };
+    
+    setSubscriptionForm(prev => ({
+      ...prev,
+      subscription_plan: plan,
+      searches_limit: planLimits[plan] || 5,
+    }));
+  };
+
+  const handleSaveSubscription = async () => {
+    if (!editingSubscription) return;
+    
+    setSavingSubscription(true);
+    try {
+      const payload: any = {
+        subscription_plan: subscriptionForm.subscription_plan,
+        searches_count: Number(subscriptionForm.searches_count),
+        searches_limit: Number(subscriptionForm.searches_limit),
+        payment_status: subscriptionForm.payment_status,
+      };
+      
+      if (subscriptionForm.subscription_expires_at) {
+        payload.subscription_expires_at = subscriptionForm.subscription_expires_at.toISOString();
+      }
+      
+      await userSubscriptionApi.updateUserSubscription(editingSubscription.id, payload);
+      
+      const successMessage = language === 'ar' 
+        ? 'تم تحديث الباقة بنجاح' 
+        : 'Subscription updated successfully';
+      toast.success(successMessage);
+      
+      setIsSubscriptionDialogOpen(false);
+      loadUsers();
+    } catch (error) {
+      console.error('Error saving subscription:', error);
+      const errorMessage = language === 'ar' 
+        ? 'فشل تحديث الباقة' 
+        : 'Failed to update subscription';
+      toast.error(errorMessage);
+    } finally {
+      setSavingSubscription(false);
     }
   };
 
@@ -702,9 +787,37 @@ export const Admin: React.FC = () => {
                                 )}
                               </Button>
                             </div>
+                            
+                            <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  {language === 'ar' ? 'الباقة' : 'Subscription Plan'}
+                                </p>
+                                <Badge 
+                                  variant="outline" 
+                                  className={
+                                    user.subscription_plan === 'Pro' 
+                                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                                      : user.subscription_plan === 'Basic'
+                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                  }
+                                >
+                                  {user.subscription_plan || 'Free'}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  {language === 'ar' ? 'عدد البحث' : 'Searches Used'}
+                                </p>
+                                <p className="text-sm font-medium">
+                                  {user.searches_count || 0} / {user.searches_limit || 5}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-2 pt-3 border-t border-border">
+                        <div className="flex gap-2 pt-3 border-t border-border flex-wrap">
                           <Button
                             variant="outline"
                             size="sm"
@@ -713,6 +826,15 @@ export const Admin: React.FC = () => {
                           >
                             <Edit className="w-4 h-4" />
                             {language === 'ar' ? 'تعديل' : 'Edit'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditSubscription(user)}
+                            className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            {language === 'ar' ? 'تعديل الباقة' : 'Edit Plan'}
                           </Button>
                           <Button
                             variant="outline"
@@ -1020,6 +1142,175 @@ export const Admin: React.FC = () => {
             >
               <Save className="w-4 h-4" />
               {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSubscriptionDialogOpen} onOpenChange={setIsSubscriptionDialogOpen}>
+        <DialogContent className="max-w-xl glass-effect">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ar' ? 'إدارة الباقة والاشتراك' : 'Manage Subscription Plan'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'تحديث باقة المستخدم وحدود البحث' 
+                : 'Update user subscription plan and search limits'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {editingSubscription && (
+              <div className="p-3 rounded-lg bg-muted/50 mb-4">
+                <p className="text-sm font-medium mb-1">{editingSubscription.name}</p>
+                <p className="text-xs text-muted-foreground">{editingSubscription.email}</p>
+              </div>
+            )}
+            
+            <div>
+              <Label>
+                {language === 'ar' ? 'الباقة' : 'Subscription Plan'}
+              </Label>
+              <Select
+                value={subscriptionForm.subscription_plan}
+                onValueChange={handleSubscriptionPlanChange}
+              >
+                <SelectTrigger className="mt-2 bg-input-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Free">
+                    Free {language === 'ar' ? '(5 عمليات بحث)' : '(5 searches)'}
+                  </SelectItem>
+                  <SelectItem value="Basic">
+                    Basic {language === 'ar' ? '(100 عملية بحث)' : '(100 searches)'}
+                  </SelectItem>
+                  <SelectItem value="Pro">
+                    Pro {language === 'ar' ? '(بحث غير محدود)' : '(Unlimited searches)'}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>
+                  {language === 'ar' ? 'عدد البحث المستخدم' : 'Searches Used'}
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={subscriptionForm.searches_count}
+                  onChange={(e) => setSubscriptionForm({ 
+                    ...subscriptionForm, 
+                    searches_count: parseInt(e.target.value) || 0 
+                  })}
+                  className="bg-input-background mt-2"
+                />
+              </div>
+
+              <div>
+                <Label>
+                  {language === 'ar' ? 'حد البحث' : 'Search Limit'}
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={subscriptionForm.searches_limit}
+                  onChange={(e) => setSubscriptionForm({ 
+                    ...subscriptionForm, 
+                    searches_limit: parseInt(e.target.value) || 0 
+                  })}
+                  className="bg-input-background mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {language === 'ar' ? 'يتحدد تلقائياً حسب الباقة' : 'Auto-set based on plan'}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <Label>
+                {language === 'ar' ? 'حالة الدفع' : 'Payment Status'}
+              </Label>
+              <Select
+                value={subscriptionForm.payment_status}
+                onValueChange={(value) => setSubscriptionForm({ 
+                  ...subscriptionForm, 
+                  payment_status: value 
+                })}
+              >
+                <SelectTrigger className="mt-2 bg-input-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    {language === 'ar' ? 'لا يوجد' : 'None'}
+                  </SelectItem>
+                  <SelectItem value="active">
+                    {language === 'ar' ? 'نشط' : 'Active'}
+                  </SelectItem>
+                  <SelectItem value="expired">
+                    {language === 'ar' ? 'منتهي' : 'Expired'}
+                  </SelectItem>
+                  <SelectItem value="cancelled">
+                    {language === 'ar' ? 'ملغي' : 'Cancelled'}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>
+                {language === 'ar' ? 'تاريخ انتهاء الاشتراك' : 'Subscription Expires At'}
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal mt-2 bg-input-background"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {subscriptionForm.subscription_expires_at ? (
+                      format(subscriptionForm.subscription_expires_at, 'PPP')
+                    ) : (
+                      <span>{language === 'ar' ? 'اختر تاريخ' : 'Pick a date'}</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 glass-effect" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={subscriptionForm.subscription_expires_at || undefined}
+                    onSelect={(date) => setSubscriptionForm({ 
+                      ...subscriptionForm, 
+                      subscription_expires_at: date || null 
+                    })}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === 'ar' ? 'اختياري - اتركه فارغاً للباقات المجانية' : 'Optional - leave empty for free plans'}
+              </p>
+            </div>
+
+            <Button 
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
+              onClick={handleSaveSubscription}
+              disabled={savingSubscription}
+            >
+              {savingSubscription ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>

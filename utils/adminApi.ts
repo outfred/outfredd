@@ -123,3 +123,16 @@ export const subscriptionsApi = {
     });
   },
 };
+
+// =============================================================================
+// User Subscription Management API
+// =============================================================================
+
+export const userSubscriptionApi = {
+  async updateUserSubscription(userId: string, data: any) {
+    return apiRequest(`/admin/users/${userId}/subscription`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};

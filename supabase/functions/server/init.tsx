@@ -50,6 +50,12 @@ export const initDemoData = async () => {
       password: hashedPassword,
       name: 'Admin User',
       role: 'admin',
+      subscription_plan: 'pro',
+      searches_count: 0,
+      searches_limit: 999999,
+      subscription_expires_at: null,
+      payment_status: 'active',
+      last_search_reset: Date.now(),
       createdAt: new Date().toISOString(),
       favorites: [],
       settings: {}
