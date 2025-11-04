@@ -344,7 +344,14 @@ export const MerchantStorePage: React.FC<MerchantStorePageProps> = ({ merchantId
                   >
                     <Card
                       className="overflow-hidden glass-effect border-border hover:shadow-xl transition-all cursor-pointer group h-full flex flex-col"
-                      onClick={() => onNavigate('product', product.id)}
+                      onClick={() => {
+                        const productLink = product.productUrl || product.originalUrl || product.url;
+                        if (productLink) {
+                          window.open(productLink, '_blank', 'noopener,noreferrer');
+                        } else {
+                          onNavigate('product', product.id);
+                        }
+                      }}
                     >
                       {productImage ? (
                         <div className="aspect-square relative overflow-hidden bg-gray-100">
