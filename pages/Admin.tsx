@@ -49,6 +49,7 @@ export const Admin: React.FC = () => {
     category: '',
     merchantId: '',
     imageUrl: '',
+    stock: '',
   });
 
   // Merchant Edit Dialog State
@@ -288,6 +289,7 @@ export const Admin: React.FC = () => {
       category: product.category || '',
       merchantId: product.merchantId || '',
       imageUrl: product.imageUrl || '',
+      stock: product.stock || '',
     });
     setIsProductDialogOpen(true);
   };
