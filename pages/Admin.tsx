@@ -3,45 +3,25 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { Label } from '../components/ui/label';
-import { Switch } from '../components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Calendar } from '../components/ui/calendar';
 import { 
-  Users, Store, Package, Settings, Layout, BarChart3, 
-  Trash2, CheckCircle, XCircle, Shield, Plus, Edit, UserPlus, Save, Palette, Copy, Check,
-  Menu, Home, CreditCard, Mail, Bot, FileText, Layers, ChevronRight, Bug, Calendar as CalendarIcon
+  Users, Store, Package, Shield, Menu, Home, ChevronRight, 
+  BarChart3, Bug, Palette, FileText, CreditCard, Bot, Layers
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { motion } from 'motion/react';
 import { adminApi, merchantsApi, productsApi } from '../utils/api';
 import { userSubscriptionApi } from '../utils/adminApi';
 import { toast } from 'sonner';
 import { copyToClipboard } from '../utils/clipboard';
 import { AdminDashboard } from './AdminDashboard';
-
-interface NavigationItem {
-  id: string;
-  label: string;
-  labelAr: string;
-  icon: React.ElementType;
-  onClick?: () => void;
-}
-
-interface NavigationSection {
-  title: string;
-  titleAr: string;
-  items: NavigationItem[];
-}
+import { AdminUsers } from './admin/AdminUsers';
+import { AdminMerchants } from './admin/AdminMerchants';
+import { AdminProducts } from './admin/AdminProducts';
+import { NavigationItem, NavigationSection, UserForm, SubscriptionForm, MerchantForm, ProductForm } from './admin/types';
 
 export const Admin: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { user, isAdmin } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -54,16 +34,10 @@ export const Admin: React.FC = () => {
   
   const [filterMerchantId, setFilterMerchantId] = useState<string>('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  
-  const [designSettings, setDesignSettings] = useState({
-    primaryColor: '#3B1728',
-    accentColor: '#8B4665',
-    secondaryColor: '#F5EDF0',
-  });
 
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<ProductForm>({
     name: '',
     description: '',
     price: '',
@@ -76,7 +50,7 @@ export const Admin: React.FC = () => {
 
   const [isMerchantDialogOpen, setIsMerchantDialogOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState<any>(null);
-  const [merchantForm, setMerchantForm] = useState({
+  const [merchantForm, setMerchantForm] = useState<MerchantForm>({
     brandName: '',
     description: '',
     email: '',
@@ -88,7 +62,7 @@ export const Admin: React.FC = () => {
 
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [userForm, setUserForm] = useState({
+  const [userForm, setUserForm] = useState<UserForm>({
     name: '',
     email: '',
     role: '',
@@ -96,15 +70,14 @@ export const Admin: React.FC = () => {
 
   const [isSubscriptionDialogOpen, setIsSubscriptionDialogOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<any>(null);
-  const [subscriptionForm, setSubscriptionForm] = useState({
+  const [subscriptionForm, setSubscriptionForm] = useState<SubscriptionForm>({
     subscription_plan: 'Free',
     searches_count: 0,
     searches_limit: 5,
     payment_status: 'none',
-    subscription_expires_at: null as Date | null,
+    subscription_expires_at: null,
   });
   const [savingSubscription, setSavingSubscription] = useState(false);
-
   const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
 
   const navigationSections: NavigationSection[] = [
@@ -183,7 +156,6 @@ export const Admin: React.FC = () => {
   useEffect(() => {
     if (isAdmin) {
       loadAnalytics();
-      loadDesignSettings();
     }
   }, [isAdmin]);
 
@@ -236,17 +208,6 @@ export const Admin: React.FC = () => {
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadDesignSettings = async () => {
-    try {
-      const data = await adminApi.getSettings();
-      if (data.settings.colors) {
-        setDesignSettings(data.settings.colors);
-      }
-    } catch (error) {
-      console.error('Error loading design settings:', error);
     }
   };
 
@@ -516,17 +477,16 @@ export const Admin: React.FC = () => {
   };
 
   const toggleAllProducts = () => {
-    const filteredProductIds = filteredProducts.map(p => p.id);
+    const filteredProductIds = (filterMerchantId
+      ? products.filter(p => p.merchantId === filterMerchantId)
+      : products).map(p => p.id);
+    
     if (selectedProducts.length === filteredProductIds.length) {
       setSelectedProducts([]);
     } else {
       setSelectedProducts(filteredProductIds);
     }
   };
-
-  const filteredProducts = filterMerchantId
-    ? products.filter(p => p.merchantId === filterMerchantId)
-    : products;
 
   const handleNavigationClick = (item: NavigationItem) => {
     if (item.onClick) {
@@ -674,9 +634,13 @@ export const Admin: React.FC = () => {
               <p className="text-sm text-muted-foreground mb-3">
                 Current role: <Badge variant="outline">{user.role}</Badge>
               </p>
-              <p className="text-xs text-muted-foreground">
-                Contact an administrator to upgrade your account to admin access.
-              </p>
+              <Button
+                onClick={() => window.location.hash = 'home'}
+                variant="outline"
+                className="w-full"
+              >
+                Go to Home
+              </Button>
             </div>
           )}
         </Card>
@@ -691,28 +655,25 @@ export const Admin: React.FC = () => {
       </aside>
 
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 glass-effect">
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
           <div className="flex items-center gap-4 p-4">
             <Button
               variant="ghost"
-              size="sm"
-              className="lg:hidden"
+              size="icon"
               onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden"
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">
-                {activeSection === 'dashboard' && (language === 'ar' ? 'لوحة المعلومات' : 'Dashboard')}
-                {activeSection === 'users' && (language === 'ar' ? 'إدارة المستخدمين' : 'User Management')}
-                {activeSection === 'merchants' && (language === 'ar' ? 'إدارة التجار' : 'Merchant Management')}
-                {activeSection === 'products' && (language === 'ar' ? 'إدارة المنتجات' : 'Product Management')}
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                {language === 'ar' ? 'لوحة التحكم الإدارية' : 'Admin Control Panel'}
               </h1>
             </div>
           </div>
@@ -720,793 +681,73 @@ export const Admin: React.FC = () => {
 
         <div className="p-6">
           {activeSection === 'dashboard' && <AdminDashboard />}
-
+          
           {activeSection === 'users' && (
-            <Card className="glass-effect border-border">
-              <div className="p-6 border-b border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2>{language === 'ar' ? 'إدارة المستخدمين' : 'User Management'}</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {language === 'ar' 
-                        ? 'انسخ معرف المستخدم لتعيينه كمعرف مدير للتجار' 
-                        : 'Copy User ID to assign as Manager ID for merchants'}
-                    </p>
-                  </div>
-                  <Button className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground">
-                    <UserPlus className="w-4 h-4" />
-                    {language === 'ar' ? 'إضافة مستخدم' : 'Add User'}
-                  </Button>
-                </div>
-              </div>
-              <div className="p-6">
-                {loading ? (
-                  <div className="text-center py-12">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : users.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {language === 'ar' ? 'لم يتم العثور على مستخدمين' : 'No users found'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {users.map((user) => (
-                      <div
-                        key={user.id}
-                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{user.name}</h3>
-                              <Badge className="capitalize">{user.role}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              <span className="font-medium">Email:</span> {user.email}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium">User ID:</span>{' '}
-                                <code className="bg-muted px-2 py-1 rounded text-xs select-all cursor-text">
-                                  {user.id}
-                                </code>
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCopyUserId(user.id)}
-                                className="h-6 px-2"
-                              >
-                                {copiedUserId === user.id ? (
-                                  <Check className="w-3 h-3 text-green-600" />
-                                ) : (
-                                  <Copy className="w-3 h-3" />
-                                )}
-                              </Button>
-                            </div>
-                            
-                            <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-3">
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  {language === 'ar' ? 'الباقة' : 'Subscription Plan'}
-                                </p>
-                                <Badge 
-                                  variant="outline" 
-                                  className={
-                                    user.subscription_plan === 'Pro' 
-                                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
-                                      : user.subscription_plan === 'Basic'
-                                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                                  }
-                                >
-                                  {user.subscription_plan || 'Free'}
-                                </Badge>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1">
-                                  {language === 'ar' ? 'عدد البحث' : 'Searches Used'}
-                                </p>
-                                <p className="text-sm font-medium">
-                                  {user.searches_count || 0} / {user.searches_limit || 5}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 pt-3 border-t border-border flex-wrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                            className="gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            {language === 'ar' ? 'تعديل' : 'Edit'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditSubscription(user)}
-                            className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                            {language === 'ar' ? 'تعديل الباقة' : 'Edit Plan'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            {language === 'ar' ? 'حذف' : 'Delete'}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
+            <AdminUsers
+              users={users}
+              loading={loading}
+              isUserDialogOpen={isUserDialogOpen}
+              setIsUserDialogOpen={setIsUserDialogOpen}
+              editingUser={editingUser}
+              userForm={userForm}
+              setUserForm={setUserForm}
+              isSubscriptionDialogOpen={isSubscriptionDialogOpen}
+              setIsSubscriptionDialogOpen={setIsSubscriptionDialogOpen}
+              editingSubscription={editingSubscription}
+              subscriptionForm={subscriptionForm}
+              setSubscriptionForm={setSubscriptionForm}
+              savingSubscription={savingSubscription}
+              copiedUserId={copiedUserId}
+              onEditUser={handleEditUser}
+              onDeleteUser={handleDeleteUser}
+              onSaveUser={handleSaveUser}
+              onEditSubscription={handleEditSubscription}
+              onSubscriptionPlanChange={handleSubscriptionPlanChange}
+              onSaveSubscription={handleSaveSubscription}
+              onCopyUserId={handleCopyUserId}
+            />
           )}
 
           {activeSection === 'merchants' && (
-            <Card className="glass-effect border-border">
-              <div className="p-6 border-b border-border">
-                <h2>{language === 'ar' ? 'إدارة التجار' : 'Merchant Management'}</h2>
-              </div>
-              <div className="p-6">
-                {loading ? (
-                  <div className="text-center py-12">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : merchants.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {language === 'ar' ? 'لم يتم العثور على تجار' : 'No merchants found'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {merchants.map((merchant) => (
-                      <div
-                        key={merchant.id}
-                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{merchant.brandName}</h3>
-                              <Badge 
-                                className={
-                                  merchant.status === 'approved' 
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                    : merchant.status === 'pending'
-                                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
-                                    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                                }
-                              >
-                                {merchant.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {merchant.description}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              <span className="font-medium">Email:</span> {merchant.email}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 pt-3 border-t border-border flex-wrap">
-                          {merchant.status === 'pending' && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleApproveMerchant(merchant.id)}
-                                className="gap-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                {language === 'ar' ? 'موافقة' : 'Approve'}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRejectMerchant(merchant.id)}
-                                className="gap-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-                              >
-                                <XCircle className="w-4 h-4" />
-                                {language === 'ar' ? 'رفض' : 'Reject'}
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditMerchant(merchant)}
-                            className="gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            {language === 'ar' ? 'تعديل' : 'Edit'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteMerchant(merchant.id)}
-                            className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            {language === 'ar' ? 'حذف' : 'Delete'}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
+            <AdminMerchants
+              merchants={merchants}
+              loading={loading}
+              isMerchantDialogOpen={isMerchantDialogOpen}
+              setIsMerchantDialogOpen={setIsMerchantDialogOpen}
+              editingMerchant={editingMerchant}
+              merchantForm={merchantForm}
+              setMerchantForm={setMerchantForm}
+              onEditMerchant={handleEditMerchant}
+              onDeleteMerchant={handleDeleteMerchant}
+              onApproveMerchant={handleApproveMerchant}
+              onRejectMerchant={handleRejectMerchant}
+              onSaveMerchant={handleSaveMerchant}
+            />
           )}
 
           {activeSection === 'products' && (
-            <Card className="glass-effect border-border">
-              <div className="p-6 border-b border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <h2>{language === 'ar' ? 'إدارة المنتجات' : 'Product Management'}</h2>
-                  <div className="flex gap-2">
-                    {selectedProducts.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleBulkDelete}
-                        className="gap-2 border-destructive text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {language === 'ar' ? `حذف (${selectedProducts.length})` : `Delete (${selectedProducts.length})`}
-                      </Button>
-                    )}
-                    <Button
-                      onClick={handleAddProduct}
-                      className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground"
-                    >
-                      <Plus className="w-4 h-4" />
-                      {language === 'ar' ? 'إضافة منتج' : 'Add Product'}
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={language === 'ar' ? 'تصفية حسب معرف التاجر' : 'Filter by merchant ID'}
-                    value={filterMerchantId}
-                    onChange={(e) => setFilterMerchantId(e.target.value)}
-                    className="max-w-xs bg-input-background"
-                  />
-                </div>
-              </div>
-              <div className="p-6">
-                {loading ? (
-                  <div className="text-center py-12">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : filteredProducts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
-                      >
-                        <div className="flex items-start gap-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedProducts.includes(product.id)}
-                            onChange={() => toggleProductSelection(product.id)}
-                            className="mt-1"
-                          />
-                          {product.imageUrl && (
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold">{product.name}</h3>
-                              <Badge variant={product.isActive ? 'default' : 'secondary'}>
-                                {product.isActive ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {product.description}
-                            </p>
-                            <div className="flex gap-4 text-sm text-muted-foreground">
-                              <span><strong>Price:</strong> ${product.price}</span>
-                              <span><strong>Category:</strong> {product.category}</span>
-                              <span><strong>Stock:</strong> {product.stock}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditProduct(product)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-destructive text-destructive"
-                              onClick={() => handleDeleteProduct(product.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
+            <AdminProducts
+              products={products}
+              loading={loading}
+              filterMerchantId={filterMerchantId}
+              setFilterMerchantId={setFilterMerchantId}
+              selectedProducts={selectedProducts}
+              isProductDialogOpen={isProductDialogOpen}
+              setIsProductDialogOpen={setIsProductDialogOpen}
+              editingProduct={editingProduct}
+              productForm={productForm}
+              setProductForm={setProductForm}
+              onAddProduct={handleAddProduct}
+              onEditProduct={handleEditProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onSaveProduct={handleSaveProduct}
+              onBulkDelete={handleBulkDelete}
+              onToggleProductSelection={toggleProductSelection}
+              onToggleAllProducts={toggleAllProducts}
+            />
           )}
         </div>
       </main>
-
-      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="max-w-xl glass-effect">
-          <DialogHeader>
-            <DialogTitle>{language === 'ar' ? 'تعديل المستخدم' : 'Edit User'}</DialogTitle>
-            <DialogDescription>
-              {language === 'ar' 
-                ? 'تحديث معلومات المستخدم وأذونات الدور' 
-                : 'Update user information and role permissions'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            {editingUser && (
-              <div className="p-3 rounded-lg bg-muted/50 mb-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  <span className="font-medium">User ID:</span>
-                </p>
-                <code className="block bg-background px-3 py-2 rounded text-xs break-all select-all cursor-text mb-3">
-                  {editingUser.id}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCopyUserId(editingUser.id)}
-                  className="gap-2 w-full"
-                >
-                  {copiedUserId === editingUser.id ? (
-                    <>
-                      <Check className="w-4 h-4 text-green-600" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy User ID
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-            
-            <div>
-              <Label>Name</Label>
-              <Input
-                value={userForm.name}
-                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                className="bg-input-background mt-2"
-              />
-            </div>
-
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={userForm.email}
-                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                className="bg-input-background mt-2"
-              />
-            </div>
-
-            <div>
-              <Label>Role</Label>
-              <select
-                value={userForm.role}
-                onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                className="w-full mt-2 h-10 px-3 rounded-md border border-border bg-input-background"
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-                <option value="merchant">Merchant</option>
-              </select>
-            </div>
-
-            <Button 
-              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
-              onClick={handleSaveUser}
-            >
-              <Save className="w-4 h-4" />
-              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSubscriptionDialogOpen} onOpenChange={setIsSubscriptionDialogOpen}>
-        <DialogContent className="max-w-xl glass-effect">
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ar' ? 'إدارة الباقة والاشتراك' : 'Manage Subscription Plan'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'ar' 
-                ? 'تحديث باقة المستخدم وحدود البحث' 
-                : 'Update user subscription plan and search limits'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            {editingSubscription && (
-              <div className="p-3 rounded-lg bg-muted/50 mb-4">
-                <p className="text-sm font-medium mb-1">{editingSubscription.name}</p>
-                <p className="text-xs text-muted-foreground">{editingSubscription.email}</p>
-              </div>
-            )}
-            
-            <div>
-              <Label>
-                {language === 'ar' ? 'الباقة' : 'Subscription Plan'}
-              </Label>
-              <Select
-                value={subscriptionForm.subscription_plan}
-                onValueChange={handleSubscriptionPlanChange}
-              >
-                <SelectTrigger className="mt-2 bg-input-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Free">
-                    Free {language === 'ar' ? '(5 عمليات بحث)' : '(5 searches)'}
-                  </SelectItem>
-                  <SelectItem value="Basic">
-                    Basic {language === 'ar' ? '(100 عملية بحث)' : '(100 searches)'}
-                  </SelectItem>
-                  <SelectItem value="Pro">
-                    Pro {language === 'ar' ? '(بحث غير محدود)' : '(Unlimited searches)'}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>
-                  {language === 'ar' ? 'عدد البحث المستخدم' : 'Searches Used'}
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={subscriptionForm.searches_count}
-                  onChange={(e) => setSubscriptionForm({ 
-                    ...subscriptionForm, 
-                    searches_count: parseInt(e.target.value) || 0 
-                  })}
-                  className="bg-input-background mt-2"
-                />
-              </div>
-
-              <div>
-                <Label>
-                  {language === 'ar' ? 'حد البحث' : 'Search Limit'}
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={subscriptionForm.searches_limit}
-                  onChange={(e) => setSubscriptionForm({ 
-                    ...subscriptionForm, 
-                    searches_limit: parseInt(e.target.value) || 0 
-                  })}
-                  className="bg-input-background mt-2"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {language === 'ar' ? 'يتحدد تلقائياً حسب الباقة' : 'Auto-set based on plan'}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <Label>
-                {language === 'ar' ? 'حالة الدفع' : 'Payment Status'}
-              </Label>
-              <Select
-                value={subscriptionForm.payment_status}
-                onValueChange={(value) => setSubscriptionForm({ 
-                  ...subscriptionForm, 
-                  payment_status: value 
-                })}
-              >
-                <SelectTrigger className="mt-2 bg-input-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    {language === 'ar' ? 'لا يوجد' : 'None'}
-                  </SelectItem>
-                  <SelectItem value="active">
-                    {language === 'ar' ? 'نشط' : 'Active'}
-                  </SelectItem>
-                  <SelectItem value="expired">
-                    {language === 'ar' ? 'منتهي' : 'Expired'}
-                  </SelectItem>
-                  <SelectItem value="cancelled">
-                    {language === 'ar' ? 'ملغي' : 'Cancelled'}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>
-                {language === 'ar' ? 'تاريخ انتهاء الاشتراك' : 'Subscription Expires At'}
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal mt-2 bg-input-background"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {subscriptionForm.subscription_expires_at ? (
-                      format(subscriptionForm.subscription_expires_at, 'PPP')
-                    ) : (
-                      <span>{language === 'ar' ? 'اختر تاريخ' : 'Pick a date'}</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 glass-effect" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={subscriptionForm.subscription_expires_at || undefined}
-                    onSelect={(date) => setSubscriptionForm({ 
-                      ...subscriptionForm, 
-                      subscription_expires_at: date || null 
-                    })}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <p className="text-xs text-muted-foreground mt-1">
-                {language === 'ar' ? 'اختياري - اتركه فارغاً للباقات المجانية' : 'Optional - leave empty for free plans'}
-              </p>
-            </div>
-
-            <Button 
-              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
-              onClick={handleSaveSubscription}
-              disabled={savingSubscription}
-            >
-              {savingSubscription ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isMerchantDialogOpen} onOpenChange={setIsMerchantDialogOpen}>
-        <DialogContent className="max-w-2xl glass-effect">
-          <DialogHeader>
-            <DialogTitle>{language === 'ar' ? 'تعديل التاجر' : 'Edit Merchant'}</DialogTitle>
-            <DialogDescription>
-              {language === 'ar' 
-                ? 'تحديث ملف التاجر ومعلومات المتجر' 
-                : 'Update merchant profile and store information'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Brand Name</Label>
-                <Input
-                  value={merchantForm.brandName}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, brandName: e.target.value })}
-                  className="bg-input-background"
-                />
-              </div>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={merchantForm.email}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, email: e.target.value })}
-                  className="bg-input-background"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Phone</Label>
-                <Input
-                  value={merchantForm.phone}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, phone: e.target.value })}
-                  className="bg-input-background"
-                />
-              </div>
-              <div>
-                <Label>Website</Label>
-                <Input
-                  value={merchantForm.website}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, website: e.target.value })}
-                  className="bg-input-background"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Logo URL</Label>
-              <Input
-                value={merchantForm.logo}
-                onChange={(e) => setMerchantForm({ ...merchantForm, logo: e.target.value })}
-                className="bg-input-background"
-              />
-            </div>
-            <div>
-              <Label>Manager User ID</Label>
-              <Input
-                value={merchantForm.managerId}
-                onChange={(e) => setMerchantForm({ ...merchantForm, managerId: e.target.value })}
-                className="bg-input-background"
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={merchantForm.description}
-                onChange={(e) => setMerchantForm({ ...merchantForm, description: e.target.value })}
-                className="bg-input-background"
-                rows={4}
-              />
-            </div>
-            <Button 
-              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
-              onClick={handleSaveMerchant}
-            >
-              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
-        <DialogContent className="max-w-2xl glass-effect">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct 
-                ? (language === 'ar' ? 'تعديل المنتج' : 'Edit Product')
-                : (language === 'ar' ? 'إضافة منتج جديد' : 'Add New Product')}
-            </DialogTitle>
-            <DialogDescription>
-              {editingProduct 
-                ? (language === 'ar' ? 'تحديث تفاصيل المنتج والتوفر' : 'Update product details and availability')
-                : (language === 'ar' ? 'إضافة منتج جديد إلى الكتالوج' : 'Add a new product to the catalog')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Product Name</Label>
-                <Input
-                  value={productForm.name}
-                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                  className="bg-input-background"
-                />
-              </div>
-              <div>
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  value={productForm.price}
-                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                  className="bg-input-background"
-                  placeholder="99.99"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Input
-                value={productForm.category}
-                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                className="bg-input-background"
-                placeholder="e.g., Clothing, Accessories"
-              />
-            </div>
-            <div>
-              <Label>Merchant ID</Label>
-              <Input
-                value={productForm.merchantId}
-                onChange={(e) => setProductForm({ ...productForm, merchantId: e.target.value })}
-                className="bg-input-background"
-                placeholder="Select or enter merchant ID"
-              />
-            </div>
-            <div>
-              <Label>Image URL</Label>
-              <Input
-                value={productForm.imageUrl}
-                onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                className="bg-input-background"
-                placeholder="https://example.com/product-image.jpg"
-              />
-            </div>
-            <div>
-              <Label>Stock</Label>
-              <Input
-                type="number"
-                value={productForm.stock}
-                onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                className="bg-input-background"
-                placeholder="Available quantity"
-                min="0"
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={productForm.description}
-                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                className="bg-input-background"
-                rows={4}
-                placeholder="Describe the product..."
-              />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
-              <div>
-                <Label className="text-base font-medium">Product Status</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {productForm.isActive 
-                    ? (language === 'ar' ? 'نشط - مرئي للعملاء' : 'Active - Visible to customers')
-                    : (language === 'ar' ? 'غير نشط - مخفي عن العملاء' : 'Inactive - Hidden from customers')}
-                </p>
-              </div>
-              <Switch
-                checked={productForm.isActive}
-                onCheckedChange={(checked) => setProductForm({ ...productForm, isActive: checked })}
-              />
-            </div>
-            <Button 
-              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
-              onClick={handleSaveProduct}
-            >
-              {editingProduct 
-                ? (language === 'ar' ? 'تحديث المنتج' : 'Update Product')
-                : (language === 'ar' ? 'إضافة منتج' : 'Add Product')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
