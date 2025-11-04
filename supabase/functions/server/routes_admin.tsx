@@ -33,30 +33,32 @@ const getDb = async () => {
 
 // Get all CMS pages
 adminRoutes.get('/cms', requireAdmin, async (c) => {
+  let client;
   try {
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM cms_pages ORDER BY page_key'
     );
-    await client.end();
     
     return c.json({ pages: result.rows });
   } catch (error: any) {
     console.error('Error fetching CMS pages:', error);
     return c.json({ error: 'Failed to fetch CMS pages' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Get single CMS page
 adminRoutes.get('/cms/:pageKey', requireAdmin, async (c) => {
+  let client;
   try {
     const pageKey = c.req.param('pageKey');
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM cms_pages WHERE page_key = $1',
       [pageKey]
     );
-    await client.end();
     
     if (result.rows.length === 0) {
       return c.json({ error: 'Page not found' }, 404);
@@ -66,17 +68,20 @@ adminRoutes.get('/cms/:pageKey', requireAdmin, async (c) => {
   } catch (error: any) {
     console.error('Error fetching CMS page:', error);
     return c.json({ error: 'Failed to fetch CMS page' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Update CMS page
 adminRoutes.put('/cms/:pageKey', requireAdmin, async (c) => {
+  let client;
   try {
     const pageKey = c.req.param('pageKey');
     const user = c.get('user');
     const body = await c.req.json();
     
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       `UPDATE cms_pages 
        SET title_en = $1, title_ar = $2, content_en = $3, content_ar = $4,
@@ -90,7 +95,6 @@ adminRoutes.put('/cms/:pageKey', requireAdmin, async (c) => {
         body.is_published !== false, user.id, pageKey
       ]
     );
-    await client.end();
     
     if (result.rows.length === 0) {
       return c.json({ error: 'Page not found' }, 404);
@@ -100,6 +104,8 @@ adminRoutes.put('/cms/:pageKey', requireAdmin, async (c) => {
   } catch (error: any) {
     console.error('Error updating CMS page:', error);
     return c.json({ error: 'Failed to update CMS page' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
@@ -109,12 +115,12 @@ adminRoutes.put('/cms/:pageKey', requireAdmin, async (c) => {
 
 // Get all site settings
 adminRoutes.get('/site-settings', requireAdmin, async (c) => {
+  let client;
   try {
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM site_settings ORDER BY setting_key'
     );
-    await client.end();
     
     // Transform to key-value object
     const settings: any = {};
@@ -127,17 +133,20 @@ adminRoutes.get('/site-settings', requireAdmin, async (c) => {
   } catch (error: any) {
     console.error('Error fetching site settings:', error);
     return c.json({ error: 'Failed to fetch site settings' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Update site setting
 adminRoutes.put('/site-settings/:key', requireAdmin, async (c) => {
+  let client;
   try {
     const settingKey = c.req.param('key');
     const user = c.get('user');
     const body = await c.req.json();
     
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       `INSERT INTO site_settings (setting_key, setting_value, updated_by)
        VALUES ($1, $2, $3)
@@ -146,12 +155,13 @@ adminRoutes.put('/site-settings/:key', requireAdmin, async (c) => {
        RETURNING *`,
       [settingKey, JSON.stringify(body.value), user.id]
     );
-    await client.end();
     
     return c.json({ success: true, setting: result.rows[0] });
   } catch (error: any) {
     console.error('Error updating site setting:', error);
     return c.json({ error: 'Failed to update site setting' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
@@ -161,27 +171,30 @@ adminRoutes.put('/site-settings/:key', requireAdmin, async (c) => {
 
 // Get payment settings
 adminRoutes.get('/payment-settings', requireAdmin, async (c) => {
+  let client;
   try {
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM payment_settings LIMIT 1'
     );
-    await client.end();
     
     return c.json({ settings: result.rows[0] || null });
   } catch (error: any) {
     console.error('Error fetching payment settings:', error);
     return c.json({ error: 'Failed to fetch payment settings' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Update payment settings
 adminRoutes.put('/payment-settings', requireAdmin, async (c) => {
+  let client;
   try {
     const user = c.get('user');
     const body = await c.req.json();
     
-    const client = await getDb();
+    client = await getDb();
     
     // Check if settings exist
     const existing = await client.queryObject('SELECT id FROM payment_settings LIMIT 1');
@@ -214,12 +227,12 @@ adminRoutes.put('/payment-settings', requireAdmin, async (c) => {
       );
     }
     
-    await client.end();
-    
     return c.json({ success: true, settings: result.rows[0] });
   } catch (error: any) {
     console.error('Error updating payment settings:', error);
     return c.json({ error: 'Failed to update payment settings' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
@@ -229,27 +242,30 @@ adminRoutes.put('/payment-settings', requireAdmin, async (c) => {
 
 // Get SMTP settings
 adminRoutes.get('/smtp', requireAdmin, async (c) => {
+  let client;
   try {
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM smtp_settings LIMIT 1'
     );
-    await client.end();
     
     return c.json({ settings: result.rows[0] || null });
   } catch (error: any) {
     console.error('Error fetching SMTP settings:', error);
     return c.json({ error: 'Failed to fetch SMTP settings' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Update SMTP settings
 adminRoutes.put('/smtp', requireAdmin, async (c) => {
+  let client;
   try {
     const user = c.get('user');
     const body = await c.req.json();
     
-    const client = await getDb();
+    client = await getDb();
     
     // Check if settings exist
     const existing = await client.queryObject('SELECT id FROM smtp_settings LIMIT 1');
@@ -282,17 +298,18 @@ adminRoutes.put('/smtp', requireAdmin, async (c) => {
       );
     }
     
-    await client.end();
-    
     return c.json({ success: true, settings: result.rows[0] });
   } catch (error: any) {
     console.error('Error updating SMTP settings:', error);
     return c.json({ error: 'Failed to update SMTP settings' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Send test email
 adminRoutes.post('/smtp/test', requireAdmin, async (c) => {
+  let client;
   try {
     const body = await c.req.json();
     const { to_email } = body;
@@ -302,11 +319,10 @@ adminRoutes.post('/smtp/test', requireAdmin, async (c) => {
     }
     
     // Get SMTP settings
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       'SELECT * FROM smtp_settings WHERE is_enabled = true LIMIT 1'
     );
-    await client.end();
     
     if (result.rows.length === 0) {
       return c.json({ error: 'SMTP is not configured or enabled' }, 400);
@@ -331,6 +347,8 @@ adminRoutes.post('/smtp/test', requireAdmin, async (c) => {
   } catch (error: any) {
     console.error('Error sending test email:', error);
     return c.json({ error: 'Failed to send test email' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
@@ -340,10 +358,11 @@ adminRoutes.post('/smtp/test', requireAdmin, async (c) => {
 
 // Get all subscription plans
 adminRoutes.get('/subscriptions', requireAdmin, async (c) => {
+  let client;
   try {
     const planType = c.req.query('type'); // 'user' or 'merchant'
     
-    const client = await getDb();
+    client = await getDb();
     let result;
     
     if (planType) {
@@ -357,22 +376,23 @@ adminRoutes.get('/subscriptions', requireAdmin, async (c) => {
       );
     }
     
-    await client.end();
-    
     return c.json({ plans: result.rows });
   } catch (error: any) {
     console.error('Error fetching subscription plans:', error);
     return c.json({ error: 'Failed to fetch subscription plans' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 
 // Update subscription plan
 adminRoutes.put('/subscriptions/:id', requireAdmin, async (c) => {
+  let client;
   try {
     const planId = c.req.param('id');
     const body = await c.req.json();
     
-    const client = await getDb();
+    client = await getDb();
     const result = await client.queryObject(
       `UPDATE subscription_plans 
        SET display_name_en = $1, display_name_ar = $2, description_en = $3, description_ar = $4,
@@ -384,7 +404,6 @@ adminRoutes.put('/subscriptions/:id', requireAdmin, async (c) => {
         body.price, body.is_active !== false, planId
       ]
     );
-    await client.end();
     
     if (result.rows.length === 0) {
       return c.json({ error: 'Plan not found' }, 404);
@@ -394,6 +413,8 @@ adminRoutes.put('/subscriptions/:id', requireAdmin, async (c) => {
   } catch (error: any) {
     console.error('Error updating subscription plan:', error);
     return c.json({ error: 'Failed to update subscription plan' }, 500);
+  } finally {
+    if (client) await client.end();
   }
 });
 

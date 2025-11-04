@@ -5,42 +5,57 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
 import { 
   Users, Store, Package, Settings, Layout, BarChart3, 
-  Trash2, CheckCircle, XCircle, Shield, Plus, Edit, UserPlus, Save, Palette, Copy, Check
+  Trash2, CheckCircle, XCircle, Shield, Plus, Edit, UserPlus, Save, Palette, Copy, Check,
+  Menu, Home, CreditCard, Mail, Bot, FileText, Layers, ChevronRight, Bug
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { adminApi, merchantsApi, productsApi } from '../utils/api';
 import { toast } from 'sonner';
 import { copyToClipboard } from '../utils/clipboard';
+import { AdminDashboard } from './AdminDashboard';
+
+interface NavigationItem {
+  id: string;
+  label: string;
+  labelAr: string;
+  icon: React.ElementType;
+  onClick?: () => void;
+}
+
+interface NavigationSection {
+  title: string;
+  titleAr: string;
+  items: NavigationItem[];
+}
 
 export const Admin: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('analytics');
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   const [analytics, setAnalytics] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [merchants, setMerchants] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // Product filtering and bulk operations
   const [filterMerchantId, setFilterMerchantId] = useState<string>('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
-  // Design Settings State
   const [designSettings, setDesignSettings] = useState({
     primaryColor: '#3B1728',
     accentColor: '#8B4665',
     secondaryColor: '#F5EDF0',
   });
 
-  // Product Dialog State
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [productForm, setProductForm] = useState({
@@ -54,7 +69,6 @@ export const Admin: React.FC = () => {
     isActive: true,
   });
 
-  // Merchant Edit Dialog State
   const [isMerchantDialogOpen, setIsMerchantDialogOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState<any>(null);
   const [merchantForm, setMerchantForm] = useState({
@@ -67,7 +81,6 @@ export const Admin: React.FC = () => {
     managerId: '',
   });
 
-  // User Edit Dialog State
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userForm, setUserForm] = useState({
@@ -76,8 +89,80 @@ export const Admin: React.FC = () => {
     role: '',
   });
 
-  // Copied User ID State
   const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+
+  const navigationSections: NavigationSection[] = [
+    {
+      title: 'Management',
+      titleAr: 'الإدارة',
+      items: [
+        { id: 'users', label: 'Users', labelAr: 'المستخدمين', icon: Users },
+        { id: 'merchants', label: 'Merchants', labelAr: 'التجار', icon: Store },
+        { id: 'products', label: 'Products', labelAr: 'المنتجات', icon: Package },
+      ]
+    },
+    {
+      title: 'Engagement',
+      titleAr: 'التفاعل',
+      items: [
+        { 
+          id: 'analytics', 
+          label: 'Analytics', 
+          labelAr: 'الإحصائيات', 
+          icon: BarChart3,
+          onClick: () => window.location.hash = 'admin-analytics'
+        },
+        { 
+          id: 'debug', 
+          label: 'Debug', 
+          labelAr: 'التصحيح', 
+          icon: Bug,
+          onClick: () => window.location.hash = 'debug'
+        },
+      ]
+    },
+    {
+      title: 'Configuration',
+      titleAr: 'الإعدادات',
+      items: [
+        { 
+          id: 'site-settings', 
+          label: 'Design & Branding', 
+          labelAr: 'التصميم والعلامة التجارية', 
+          icon: Palette,
+          onClick: () => window.location.hash = 'admin-site-settings'
+        },
+        { 
+          id: 'cms', 
+          label: 'Content (CMS)', 
+          labelAr: 'المحتوى', 
+          icon: FileText,
+          onClick: () => window.location.hash = 'admin-cms'
+        },
+        { 
+          id: 'payment-settings', 
+          label: 'Payments & Email', 
+          labelAr: 'المدفوعات والبريد', 
+          icon: CreditCard,
+          onClick: () => window.location.hash = 'admin-payment-settings'
+        },
+        { 
+          id: 'ai-settings', 
+          label: 'AI Configuration', 
+          labelAr: 'إعدادات الذكاء الاصطناعي', 
+          icon: Bot,
+          onClick: () => window.location.hash = 'admin-ai-settings'
+        },
+        { 
+          id: 'subscriptions', 
+          label: 'Subscription Plans', 
+          labelAr: 'باقات الاشتراك', 
+          icon: Layers,
+          onClick: () => window.location.hash = 'admin-subscriptions'
+        },
+      ]
+    }
+  ];
 
   useEffect(() => {
     if (isAdmin) {
@@ -151,7 +236,6 @@ export const Admin: React.FC = () => {
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
-
     try {
       await adminApi.deleteUser(userId);
       toast.success('User deleted successfully');
@@ -174,7 +258,6 @@ export const Admin: React.FC = () => {
 
   const handleSaveUser = async () => {
     if (!editingUser) return;
-    
     try {
       await adminApi.updateUser(editingUser.id, userForm);
       toast.success('User updated successfully');
@@ -189,15 +272,10 @@ export const Admin: React.FC = () => {
 
   const handleCopyUserId = async (userId: string) => {
     const success = await copyToClipboard(userId);
-    
     if (success) {
       setCopiedUserId(userId);
       toast.success('User ID copied to clipboard!');
-      
-      // Reset copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedUserId(null);
-      }, 2000);
+      setTimeout(() => setCopiedUserId(null), 2000);
     } else {
       toast.error('Failed to copy User ID. Please copy it manually.');
     }
@@ -228,7 +306,6 @@ export const Admin: React.FC = () => {
 
   const handleDeleteMerchant = async (merchantId: string) => {
     if (!confirm('Are you sure you want to delete this merchant?')) return;
-
     try {
       await merchantsApi.delete(merchantId);
       toast.success('Merchant deleted successfully');
@@ -256,7 +333,6 @@ export const Admin: React.FC = () => {
 
   const handleSaveMerchant = async () => {
     if (!editingMerchant) return;
-    
     try {
       await merchantsApi.update(editingMerchant.id, merchantForm);
       toast.success('Merchant updated successfully');
@@ -316,25 +392,8 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleImportProducts = async () => {
-    try {
-      const merchantId = prompt('Enter merchant ID to import products:');
-      const url = prompt('Enter merchant website URL:');
-      
-      if (merchantId && url) {
-        await productsApi.import(merchantId, url);
-        toast.success('Products import started');
-        loadProducts();
-      }
-    } catch (error) {
-      console.error('Error importing products:', error);
-      toast.error('Failed to import products');
-    }
-  };
-
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-
     try {
       await productsApi.delete(productId);
       toast.success('Product deleted successfully');
@@ -351,9 +410,7 @@ export const Admin: React.FC = () => {
       toast.error('No products selected');
       return;
     }
-
     if (!confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)?`)) return;
-
     try {
       await Promise.all(selectedProducts.map(id => productsApi.delete(id)));
       toast.success(`${selectedProducts.length} product(s) deleted successfully`);
@@ -386,20 +443,93 @@ export const Admin: React.FC = () => {
     ? products.filter(p => p.merchantId === filterMerchantId)
     : products;
 
-  const handleSaveDesignSettings = async () => {
-    try {
-      await adminApi.updateSettings({ colors: designSettings });
-      toast.success('Design settings saved successfully!');
+  const handleNavigationClick = (item: NavigationItem) => {
+    if (item.onClick) {
+      item.onClick();
+    } else {
+      setActiveSection(item.id);
+      setIsSidebarOpen(false);
       
-      // Update CSS variables
-      document.documentElement.style.setProperty('--brand-primary', designSettings.primaryColor);
-      document.documentElement.style.setProperty('--brand-accent', designSettings.accentColor);
-      document.documentElement.style.setProperty('--secondary', designSettings.secondaryColor);
-    } catch (error) {
-      console.error('Error saving design settings:', error);
-      toast.error('Failed to save design settings');
+      if (item.id === 'users') loadUsers();
+      else if (item.id === 'merchants') loadMerchants();
+      else if (item.id === 'products') loadProducts();
     }
   };
+
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-6 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Shield className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">
+              {language === 'ar' ? 'لوحة التحكم' : 'Admin Panel'}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {language === 'ar' ? 'إدارة كاملة' : 'Full Management'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <button
+          onClick={() => { setActiveSection('dashboard'); setIsSidebarOpen(false); }}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+            activeSection === 'dashboard'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-secondary'
+          }`}
+        >
+          <Home className="w-5 h-5" />
+          <span className="font-medium">
+            {language === 'ar' ? 'لوحة المعلومات' : 'Dashboard'}
+          </span>
+        </button>
+
+        {navigationSections.map((section, idx) => (
+          <div key={idx}>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase px-4 mb-2">
+              {language === 'ar' ? section.titleAr : section.title}
+            </h3>
+            <div className="space-y-1">
+              {section.items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigationClick(item)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
+                    activeSection === item.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-secondary'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="flex-1 text-left font-medium">
+                    {language === 'ar' ? item.labelAr : item.label}
+                  </span>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${
+                    activeSection === item.id ? '' : 'group-hover:translate-x-1'
+                  }`} />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 border-t border-border">
+        <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-sm font-medium">{user?.name}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   if (!isAdmin) {
     return (
@@ -470,203 +600,57 @@ export const Admin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen py-12">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary-foreground" />
+    <div className="flex h-screen overflow-hidden">
+      <aside className="hidden lg:flex lg:w-64 border-r border-border glass-effect">
+        <SidebarContent />
+      </aside>
+
+      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      <main className="flex-1 overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="flex items-center gap-4 p-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">
+                {activeSection === 'dashboard' && (language === 'ar' ? 'لوحة المعلومات' : 'Dashboard')}
+                {activeSection === 'users' && (language === 'ar' ? 'إدارة المستخدمين' : 'User Management')}
+                {activeSection === 'merchants' && (language === 'ar' ? 'إدارة التجار' : 'Merchant Management')}
+                {activeSection === 'products' && (language === 'ar' ? 'إدارة المنتجات' : 'Product Management')}
+              </h1>
             </div>
-            <h1 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              {t('adminPanel')}
-            </h1>
           </div>
-          <p className="text-muted-foreground">
-            Manage your platform with complete control
-          </p>
-        </motion.div>
+        </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="glass-effect border-border p-2">
-            <TabsTrigger value="analytics" className="gap-2">
-              <BarChart3 className="w-4 h-4" />
-              {t('analytics')}
-            </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2" onClick={loadUsers}>
-              <Users className="w-4 h-4" />
-              {t('users')}
-            </TabsTrigger>
-            <TabsTrigger value="merchants" className="gap-2" onClick={loadMerchants}>
-              <Store className="w-4 h-4" />
-              {t('merchants')}
-            </TabsTrigger>
-            <TabsTrigger value="products" className="gap-2" onClick={loadProducts}>
-              <Package className="w-4 h-4" />
-              {t('products')}
-            </TabsTrigger>
-            <TabsTrigger value="design" className="gap-2">
-              <Palette className="w-4 h-4" />
-              {t('designSettings')}
-            </TabsTrigger>
-            <TabsTrigger value="pages" className="gap-2">
-              <Layout className="w-4 h-4" />
-              {t('pageBuilder')}
-            </TabsTrigger>
-          </TabsList>
+        <div className="p-6">
+          {activeSection === 'dashboard' && <AdminDashboard />}
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics">
-            {/* Quick Links */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Quick Access</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-analytics'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Advanced Analytics</h4>
-                      <p className="text-xs text-muted-foreground">Detailed platform stats</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-subscriptions'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                      <Package className="w-5 h-5 text-purple-600 dark:text-purple-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Subscriptions</h4>
-                      <p className="text-xs text-muted-foreground">Manage plans & packages</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-cms'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <Layout className="w-5 h-5 text-green-600 dark:text-green-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">CMS</h4>
-                      <p className="text-xs text-muted-foreground">Edit static pages</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-site-settings'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-yellow-600 dark:text-yellow-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Site Settings</h4>
-                      <p className="text-xs text-muted-foreground">SEO, logo, social links</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-payment-settings'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center">
-                      <Package className="w-5 h-5 text-pink-600 dark:text-pink-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Payment & SMTP</h4>
-                      <p className="text-xs text-muted-foreground">Paymob & email settings</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4 glass-effect border-border hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => window.location.hash = 'admin-ai-settings'}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                      <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">AI Settings</h4>
-                      <p className="text-xs text-muted-foreground">Configure AI models</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="p-6 glass-effect border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <Users className="w-8 h-8 text-primary" />
-                  <Badge className="bg-primary/10 text-primary border-primary">
-                    Total
-                  </Badge>
-                </div>
-                <p className="mb-2">{analytics?.totalUsers || 0}</p>
-                <p className="text-sm text-muted-foreground">Total Users</p>
-              </Card>
-
-              <Card className="p-6 glass-effect border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <Store className="w-8 h-8 text-accent" />
-                  <Badge className="bg-accent/10 text-accent border-accent">
-                    Active
-                  </Badge>
-                </div>
-                <p className="mb-2">{analytics?.approvedMerchants || 0}</p>
-                <p className="text-sm text-muted-foreground">Approved Merchants</p>
-              </Card>
-
-              <Card className="p-6 glass-effect border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <Package className="w-8 h-8 text-primary-light" />
-                  <Badge className="bg-primary-light/10 text-primary-light border-primary-light">
-                    Live
-                  </Badge>
-                </div>
-                <p className="mb-2">{analytics?.totalProducts || 0}</p>
-                <p className="text-sm text-muted-foreground">Total Products</p>
-              </Card>
-
-              <Card className="p-6 glass-effect border-border">
-                <div className="flex items-center justify-between mb-4">
-                  <Store className="w-8 h-8 text-accent-light" />
-                  <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 border-orange-300">
-                    Pending
-                  </Badge>
-                </div>
-                <p className="mb-2">{analytics?.pendingMerchants || 0}</p>
-                <p className="text-sm text-muted-foreground">Pending Approvals</p>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users">
+          {activeSection === 'users' && (
             <Card className="glass-effect border-border">
               <div className="p-6 border-b border-border">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2>User Management</h2>
+                    <h2>{language === 'ar' ? 'إدارة المستخدمين' : 'User Management'}</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Copy User ID to assign as Manager ID for merchants
+                      {language === 'ar' 
+                        ? 'انسخ معرف المستخدم لتعيينه كمعرف مدير للتجار' 
+                        : 'Copy User ID to assign as Manager ID for merchants'}
                     </p>
                   </div>
                   <Button className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground">
                     <UserPlus className="w-4 h-4" />
-                    Add User
+                    {language === 'ar' ? 'إضافة مستخدم' : 'Add User'}
                   </Button>
                 </div>
               </div>
@@ -678,19 +662,21 @@ export const Admin: React.FC = () => {
                 ) : users.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No users found</p>
+                    <p className="text-muted-foreground">
+                      {language === 'ar' ? 'لم يتم العثور على مستخدمين' : 'No users found'}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {users.map((user) => (
                       <div
                         key={user.id}
-                        className="p-4 rounded-lg bg-secondary/50 border border-border"
+                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3>{user.name}</h3>
+                              <h3 className="font-semibold">{user.name}</h3>
                               <Badge className="capitalize">{user.role}</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-1">
@@ -699,10 +685,7 @@ export const Admin: React.FC = () => {
                             <div className="flex items-center gap-2 mt-2">
                               <p className="text-sm text-muted-foreground">
                                 <span className="font-medium">User ID:</span>{' '}
-                                <code 
-                                  className="bg-muted px-2 py-1 rounded text-xs select-all cursor-text"
-                                  title="Click to select, then copy manually"
-                                >
+                                <code className="bg-muted px-2 py-1 rounded text-xs select-all cursor-text">
                                   {user.id}
                                 </code>
                               </p>
@@ -711,7 +694,6 @@ export const Admin: React.FC = () => {
                                 size="sm"
                                 onClick={() => handleCopyUserId(user.id)}
                                 className="h-6 px-2"
-                                title="Copy User ID"
                               >
                                 {copiedUserId === user.id ? (
                                   <Check className="w-3 h-3 text-green-600" />
@@ -730,7 +712,7 @@ export const Admin: React.FC = () => {
                             className="gap-2"
                           >
                             <Edit className="w-4 h-4" />
-                            Edit
+                            {language === 'ar' ? 'تعديل' : 'Edit'}
                           </Button>
                           <Button
                             variant="outline"
@@ -739,7 +721,7 @@ export const Admin: React.FC = () => {
                             className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           >
                             <Trash2 className="w-4 h-4" />
-                            Delete
+                            {language === 'ar' ? 'حذف' : 'Delete'}
                           </Button>
                         </div>
                       </div>
@@ -748,13 +730,12 @@ export const Admin: React.FC = () => {
                 )}
               </div>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Merchants Tab */}
-          <TabsContent value="merchants">
+          {activeSection === 'merchants' && (
             <Card className="glass-effect border-border">
               <div className="p-6 border-b border-border">
-                <h2>Merchant Management</h2>
+                <h2>{language === 'ar' ? 'إدارة التجار' : 'Merchant Management'}</h2>
               </div>
               <div className="p-6">
                 {loading ? (
@@ -764,79 +745,81 @@ export const Admin: React.FC = () => {
                 ) : merchants.length === 0 ? (
                   <div className="text-center py-12">
                     <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No merchants found</p>
+                    <p className="text-muted-foreground">
+                      {language === 'ar' ? 'لم يتم العثور على تجار' : 'No merchants found'}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {merchants.map((merchant) => (
                       <div
                         key={merchant.id}
-                        className="p-4 rounded-lg bg-secondary/50"
+                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="mb-1">{merchant.brandName}</h3>
-                            <p className="text-sm text-muted-foreground">{merchant.email}</p>
-                            {merchant.managerId && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Manager ID: {merchant.managerId}
-                              </p>
-                            )}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold">{merchant.brandName}</h3>
+                              <Badge 
+                                className={
+                                  merchant.status === 'approved' 
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                    : merchant.status === 'pending'
+                                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                                    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                }
+                              >
+                                {merchant.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {merchant.description}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              <span className="font-medium">Email:</span> {merchant.email}
+                            </p>
                           </div>
-                          <Badge
-                            className={
-                              merchant.status === 'approved'
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                : merchant.status === 'pending'
-                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                            }
-                          >
-                            {merchant.status}
-                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {merchant.description}
-                        </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 pt-3 border-t border-border flex-wrap">
                           {merchant.status === 'pending' && (
                             <>
                               <Button
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleApproveMerchant(merchant.id)}
-                                className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                className="gap-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                               >
                                 <CheckCircle className="w-4 h-4" />
-                                {t('approve')}
+                                {language === 'ar' ? 'موافقة' : 'Approve'}
                               </Button>
                               <Button
-                                size="sm"
                                 variant="outline"
+                                size="sm"
                                 onClick={() => handleRejectMerchant(merchant.id)}
-                                className="gap-2 border-destructive text-destructive"
+                                className="gap-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
                               >
                                 <XCircle className="w-4 h-4" />
-                                {t('reject')}
+                                {language === 'ar' ? 'رفض' : 'Reject'}
                               </Button>
                             </>
                           )}
                           <Button
-                            size="sm"
                             variant="outline"
+                            size="sm"
                             onClick={() => handleEditMerchant(merchant)}
                             className="gap-2"
                           >
                             <Edit className="w-4 h-4" />
-                            Edit
+                            {language === 'ar' ? 'تعديل' : 'Edit'}
                           </Button>
                           <Button
-                            size="sm"
                             variant="outline"
+                            size="sm"
                             onClick={() => handleDeleteMerchant(merchant.id)}
-                            className="gap-2 border-destructive text-destructive"
+                            className="gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           >
                             <Trash2 className="w-4 h-4" />
-                            {t('delete')}
+                            {language === 'ar' ? 'حذف' : 'Delete'}
                           </Button>
                         </div>
                       </div>
@@ -845,77 +828,41 @@ export const Admin: React.FC = () => {
                 )}
               </div>
             </Card>
-          </TabsContent>
+          )}
 
-          {/* Products Tab */}
-          <TabsContent value="products">
+          {activeSection === 'products' && (
             <Card className="glass-effect border-border">
               <div className="p-6 border-b border-border">
                 <div className="flex items-center justify-between mb-4">
-                  <h2>Product Management</h2>
+                  <h2>{language === 'ar' ? 'إدارة المنتجات' : 'Product Management'}</h2>
                   <div className="flex gap-2">
-                    <Button 
-                      className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground"
-                      onClick={handleImportProducts}
-                    >
-                      <Package className="w-4 h-4" />
-                      Import Products
-                    </Button>
-                    <Button 
-                      className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground"
+                    {selectedProducts.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        className="gap-2 border-destructive text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {language === 'ar' ? `حذف (${selectedProducts.length})` : `Delete (${selectedProducts.length})`}
+                      </Button>
+                    )}
+                    <Button
                       onClick={handleAddProduct}
+                      className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground"
                     >
                       <Plus className="w-4 h-4" />
-                      Add Product
+                      {language === 'ar' ? 'إضافة منتج' : 'Add Product'}
                     </Button>
                   </div>
                 </div>
-                
-                {/* Filter and Bulk Actions */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex-1 min-w-[200px]">
-                    <Label>Filter by Merchant</Label>
-                    <select
-                      value={filterMerchantId}
-                      onChange={(e) => setFilterMerchantId(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input-background"
-                    >
-                      <option value="">All Merchants</option>
-                      {merchants.map(m => (
-                        <option key={m.id} value={m.id}>{m.brandName}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {products.length > 0 && (
-                    <>
-                      <div className="flex items-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={toggleAllProducts}
-                          className="gap-2"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                            readOnly
-                          />
-                          Select All ({filteredProducts.length})
-                        </Button>
-                      </div>
-                      
-                      {selectedProducts.length > 0 && (
-                        <Button
-                          variant="outline"
-                          onClick={handleBulkDelete}
-                          className="gap-2 border-destructive text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete Selected ({selectedProducts.length})
-                        </Button>
-                      )}
-                    </>
-                  )}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={language === 'ar' ? 'تصفية حسب معرف التاجر' : 'Filter by merchant ID'}
+                    value={filterMerchantId}
+                    onChange={(e) => setFilterMerchantId(e.target.value)}
+                    className="max-w-xs bg-input-background"
+                  />
                 </div>
               </div>
               <div className="p-6">
@@ -923,477 +870,352 @@ export const Admin: React.FC = () => {
                   <div className="text-center py-12">
                     <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
                   </div>
-                ) : products.length === 0 ? (
+                ) : filteredProducts.length === 0 ? (
                   <div className="text-center py-12">
                     <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="mb-2">No Products Yet</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Add products manually or import them from merchant websites
+                    <p className="text-muted-foreground">
+                      {language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found'}
                     </p>
-                    <Button 
-                      className="bg-gradient-to-r from-primary to-accent text-primary-foreground"
-                      onClick={handleAddProduct}
-                    >
-                      Add Your First Product
-                    </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-4">
                     {filteredProducts.map((product) => (
-                      <Card key={product.id} className="p-4 border-border relative">
-                        <div className="absolute top-2 left-2 z-10">
+                      <div
+                        key={product.id}
+                        className="p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary transition-colors"
+                      >
+                        <div className="flex items-start gap-4">
                           <input
                             type="checkbox"
                             checked={selectedProducts.includes(product.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedProducts([...selectedProducts, product.id]);
-                              } else {
-                                setSelectedProducts(selectedProducts.filter(id => id !== product.id));
-                              }
-                            }}
-                            className="w-5 h-5 cursor-pointer"
+                            onChange={() => toggleProductSelection(product.id)}
+                            className="mt-1"
                           />
+                          {product.imageUrl && (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="w-16 h-16 object-cover rounded-lg"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold">{product.name}</h3>
+                              <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                                {product.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              {product.description}
+                            </p>
+                            <div className="flex gap-4 text-sm text-muted-foreground">
+                              <span><strong>Price:</strong> ${product.price}</span>
+                              <span><strong>Category:</strong> {product.category}</span>
+                              <span><strong>Stock:</strong> {product.stock}</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-destructive text-destructive"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        {product.imageUrl && (
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name}
-                            className="w-full h-48 object-cover rounded-lg mb-4"
-                          />
-                        )}
-                        <h3 className="mb-2">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
-                        <p className="mb-2">
-                          <Badge variant="outline">{merchants.find(m => m.id === product.merchantId)?.brandName || 'Unknown'}</Badge>
-                        </p>
-                        <p className="mb-4">Price: ${product.price}</p>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditProduct(product)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-destructive text-destructive"
-                            onClick={() => handleDeleteProduct(product.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </Card>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
             </Card>
-          </TabsContent>
+          )}
+        </div>
+      </main>
 
-          {/* Design Settings Tab */}
-          <TabsContent value="design">
-            <Card className="glass-effect border-border">
-              <div className="p-6 border-b border-border">
-                <div className="flex items-center gap-3">
-                  <Palette className="w-6 h-6 text-primary" />
-                  <h2>{t('designSettings')}</h2>
-                </div>
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent className="max-w-xl glass-effect">
+          <DialogHeader>
+            <DialogTitle>{language === 'ar' ? 'تعديل المستخدم' : 'Edit User'}</DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'تحديث معلومات المستخدم وأذونات الدور' 
+                : 'Update user information and role permissions'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {editingUser && (
+              <div className="p-3 rounded-lg bg-muted/50 mb-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium">User ID:</span>
+                </p>
+                <code className="block bg-background px-3 py-2 rounded text-xs break-all select-all cursor-text mb-3">
+                  {editingUser.id}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopyUserId(editingUser.id)}
+                  className="gap-2 w-full"
+                >
+                  {copiedUserId === editingUser.id ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-600" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy User ID
+                    </>
+                  )}
+                </Button>
               </div>
-              <div className="p-6">
-                <div className="max-w-2xl space-y-6">
-                  <div>
-                    <Label htmlFor="primaryColor">Primary Color (Brand Color)</Label>
-                    <div className="flex gap-4 items-center mt-2">
-                      <Input
-                        id="primaryColor"
-                        type="color"
-                        value={designSettings.primaryColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, primaryColor: e.target.value })}
-                        className="w-20 h-12 cursor-pointer"
-                      />
-                      <Input
-                        type="text"
-                        value={designSettings.primaryColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, primaryColor: e.target.value })}
-                        className="flex-1 bg-input-background"
-                        placeholder="#3B1728"
-                      />
-                    </div>
-                  </div>
+            )}
+            
+            <div>
+              <Label>Name</Label>
+              <Input
+                value={userForm.name}
+                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                className="bg-input-background mt-2"
+              />
+            </div>
 
-                  <div>
-                    <Label htmlFor="accentColor">Accent Color</Label>
-                    <div className="flex gap-4 items-center mt-2">
-                      <Input
-                        id="accentColor"
-                        type="color"
-                        value={designSettings.accentColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, accentColor: e.target.value })}
-                        className="w-20 h-12 cursor-pointer"
-                      />
-                      <Input
-                        type="text"
-                        value={designSettings.accentColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, accentColor: e.target.value })}
-                        className="flex-1 bg-input-background"
-                        placeholder="#8B4665"
-                      />
-                    </div>
-                  </div>
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                className="bg-input-background mt-2"
+              />
+            </div>
 
-                  <div>
-                    <Label htmlFor="secondaryColor">Secondary Color (Background)</Label>
-                    <div className="flex gap-4 items-center mt-2">
-                      <Input
-                        id="secondaryColor"
-                        type="color"
-                        value={designSettings.secondaryColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, secondaryColor: e.target.value })}
-                        className="w-20 h-12 cursor-pointer"
-                      />
-                      <Input
-                        type="text"
-                        value={designSettings.secondaryColor}
-                        onChange={(e) => setDesignSettings({ ...designSettings, secondaryColor: e.target.value })}
-                        className="flex-1 bg-input-background"
-                        placeholder="#F5EDF0"
-                      />
-                    </div>
-                  </div>
+            <div>
+              <Label>Role</Label>
+              <select
+                value={userForm.role}
+                onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                className="w-full mt-2 h-10 px-3 rounded-md border border-border bg-input-background"
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="merchant">Merchant</option>
+              </select>
+            </div>
 
-                  <div className="pt-4">
-                    <Button 
-                      className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
-                      onClick={handleSaveDesignSettings}
-                    >
-                      <Save className="w-4 h-4" />
-                      Save Design Settings
-                    </Button>
-                  </div>
+            <Button 
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
+              onClick={handleSaveUser}
+            >
+              <Save className="w-4 h-4" />
+              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-                  <div className="mt-8 p-4 rounded-lg bg-secondary/50 border border-border">
-                    <h3 className="mb-4">Color Preview</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <div 
-                          className="w-full h-20 rounded-lg mb-2"
-                          style={{ backgroundColor: designSettings.primaryColor }}
-                        />
-                        <p className="text-sm text-center">Primary</p>
-                      </div>
-                      <div>
-                        <div 
-                          className="w-full h-20 rounded-lg mb-2"
-                          style={{ backgroundColor: designSettings.accentColor }}
-                        />
-                        <p className="text-sm text-center">Accent</p>
-                      </div>
-                      <div>
-                        <div 
-                          className="w-full h-20 rounded-lg mb-2"
-                          style={{ backgroundColor: designSettings.secondaryColor }}
-                        />
-                        <p className="text-sm text-center">Secondary</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Page Builder Tab */}
-          <TabsContent value="pages">
-            <Card className="p-12 text-center glass-effect border-border">
-              <Layout className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="mb-2">{t('pageBuilder')}</h3>
-              <p className="text-muted-foreground">
-                Create and edit custom pages with drag-and-drop interface
-              </p>
-              <Button className="mt-4 bg-gradient-to-r from-primary to-accent text-primary-foreground">
-                Coming Soon
-              </Button>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Edit User Dialog */}
-        <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent className="max-w-xl glass-effect">
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Update user information and role permissions
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              {editingUser && (
-                <div className="p-3 rounded-lg bg-muted/50 mb-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    <span className="font-medium">User ID:</span>
-                  </p>
-                  <code 
-                    className="block bg-background px-3 py-2 rounded text-xs break-all select-all cursor-text mb-3"
-                    title="Click to select, then copy manually"
-                  >
-                    {editingUser.id}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyUserId(editingUser.id)}
-                    className="gap-2 w-full"
-                  >
-                    {copiedUserId === editingUser.id ? (
-                      <>
-                        <Check className="w-4 h-4 text-green-600" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy User ID
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-              
+      <Dialog open={isMerchantDialogOpen} onOpenChange={setIsMerchantDialogOpen}>
+        <DialogContent className="max-w-2xl glass-effect">
+          <DialogHeader>
+            <DialogTitle>{language === 'ar' ? 'تعديل التاجر' : 'Edit Merchant'}</DialogTitle>
+            <DialogDescription>
+              {language === 'ar' 
+                ? 'تحديث ملف التاجر ومعلومات المتجر' 
+                : 'Update merchant profile and store information'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Name</Label>
+                <Label>Brand Name</Label>
                 <Input
-                  value={userForm.name}
-                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  className="bg-input-background mt-2"
-                  placeholder="User name"
+                  value={merchantForm.brandName}
+                  onChange={(e) => setMerchantForm({ ...merchantForm, brandName: e.target.value })}
+                  className="bg-input-background"
                 />
               </div>
-
               <div>
                 <Label>Email</Label>
                 <Input
                   type="email"
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  className="bg-input-background mt-2"
-                  placeholder="user@example.com"
+                  value={merchantForm.email}
+                  onChange={(e) => setMerchantForm({ ...merchantForm, email: e.target.value })}
+                  className="bg-input-background"
                 />
-              </div>
-
-              <div>
-                <Label>Role</Label>
-                <select
-                  value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  className="w-full mt-2 h-10 px-3 rounded-md border border-border bg-input-background"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="merchant">Merchant</option>
-                </select>
-              </div>
-
-              <div className="pt-4">
-                <Button 
-                  className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground gap-2"
-                  onClick={handleSaveUser}
-                >
-                  <Save className="w-4 h-4" />
-                  Save Changes
-                </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Merchant Dialog */}
-        <Dialog open={isMerchantDialogOpen} onOpenChange={setIsMerchantDialogOpen}>
-          <DialogContent className="max-w-2xl glass-effect">
-            <DialogHeader>
-              <DialogTitle>Edit Merchant</DialogTitle>
-              <DialogDescription>
-                Update merchant profile and store information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Brand Name</Label>
-                  <Input
-                    value={merchantForm.brandName}
-                    onChange={(e) => setMerchantForm({ ...merchantForm, brandName: e.target.value })}
-                    className="bg-input-background"
-                  />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={merchantForm.email}
-                    onChange={(e) => setMerchantForm({ ...merchantForm, email: e.target.value })}
-                    className="bg-input-background"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Phone</Label>
-                  <Input
-                    value={merchantForm.phone}
-                    onChange={(e) => setMerchantForm({ ...merchantForm, phone: e.target.value })}
-                    className="bg-input-background"
-                  />
-                </div>
-                <div>
-                  <Label>Website</Label>
-                  <Input
-                    value={merchantForm.website}
-                    onChange={(e) => setMerchantForm({ ...merchantForm, website: e.target.value })}
-                    className="bg-input-background"
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Logo URL</Label>
+                <Label>Phone</Label>
                 <Input
-                  value={merchantForm.logo}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, logo: e.target.value })}
+                  value={merchantForm.phone}
+                  onChange={(e) => setMerchantForm({ ...merchantForm, phone: e.target.value })}
                   className="bg-input-background"
                 />
               </div>
               <div>
-                <Label>Manager User ID (Optional)</Label>
+                <Label>Website</Label>
                 <Input
-                  value={merchantForm.managerId}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, managerId: e.target.value })}
+                  value={merchantForm.website}
+                  onChange={(e) => setMerchantForm({ ...merchantForm, website: e.target.value })}
                   className="bg-input-background"
-                  placeholder="User ID of the merchant manager"
                 />
               </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  value={merchantForm.description}
-                  onChange={(e) => setMerchantForm({ ...merchantForm, description: e.target.value })}
-                  className="bg-input-background"
-                  rows={4}
-                />
-              </div>
-              <Button 
-                className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
-                onClick={handleSaveMerchant}
-              >
-                Save Changes
-              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <Label>Logo URL</Label>
+              <Input
+                value={merchantForm.logo}
+                onChange={(e) => setMerchantForm({ ...merchantForm, logo: e.target.value })}
+                className="bg-input-background"
+              />
+            </div>
+            <div>
+              <Label>Manager User ID</Label>
+              <Input
+                value={merchantForm.managerId}
+                onChange={(e) => setMerchantForm({ ...merchantForm, managerId: e.target.value })}
+                className="bg-input-background"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={merchantForm.description}
+                onChange={(e) => setMerchantForm({ ...merchantForm, description: e.target.value })}
+                className="bg-input-background"
+                rows={4}
+              />
+            </div>
+            <Button 
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
+              onClick={handleSaveMerchant}
+            >
+              {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        {/* Add/Edit Product Dialog */}
-        <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
-          <DialogContent className="max-w-2xl glass-effect">
-            <DialogHeader>
-              <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-              <DialogDescription>
-                {editingProduct 
-                  ? 'Update product details and availability' 
-                  : 'Add a new product to the catalog'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Product Name</Label>
-                  <Input
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    className="bg-input-background"
-                  />
-                </div>
-                <div>
-                  <Label>Price</Label>
-                  <Input
-                    type="number"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                    className="bg-input-background"
-                    placeholder="99.99"
-                  />
-                </div>
-              </div>
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+        <DialogContent className="max-w-2xl glass-effect">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct 
+                ? (language === 'ar' ? 'تعديل المنتج' : 'Edit Product')
+                : (language === 'ar' ? 'إضافة منتج جديد' : 'Add New Product')}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProduct 
+                ? (language === 'ar' ? 'تحديث تفاصيل المنتج والتوفر' : 'Update product details and availability')
+                : (language === 'ar' ? 'إضافة منتج جديد إلى الكتالوج' : 'Add a new product to the catalog')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Category</Label>
+                <Label>Product Name</Label>
                 <Input
-                  value={productForm.category}
-                  onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                   className="bg-input-background"
-                  placeholder="e.g., Clothing, Accessories"
                 />
               </div>
               <div>
-                <Label>Merchant ID</Label>
-                <Input
-                  value={productForm.merchantId}
-                  onChange={(e) => setProductForm({ ...productForm, merchantId: e.target.value })}
-                  className="bg-input-background"
-                  placeholder="Select or enter merchant ID"
-                />
-              </div>
-              <div>
-                <Label>Image URL</Label>
-                <Input
-                  value={productForm.imageUrl}
-                  onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
-                  className="bg-input-background"
-                  placeholder="https://example.com/product-image.jpg"
-                />
-              </div>
-              <div>
-                <Label>Stock</Label>
+                <Label>Price</Label>
                 <Input
                   type="number"
-                  value={productForm.stock}
-                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  value={productForm.price}
+                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                   className="bg-input-background"
-                  placeholder="Available quantity"
-                  min="0"
+                  placeholder="99.99"
                 />
               </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  className="bg-input-background"
-                  rows={4}
-                  placeholder="Describe the product..."
-                />
-              </div>
-              <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
-                <div>
-                  <Label className="text-base font-medium">Product Status</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {productForm.isActive ? 'Active - Visible to customers' : 'Inactive - Hidden from customers'}
-                  </p>
-                </div>
-                <Switch
-                  checked={productForm.isActive}
-                  onCheckedChange={(checked) => setProductForm({ ...productForm, isActive: checked })}
-                />
-              </div>
-              <Button 
-                className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
-                onClick={handleSaveProduct}
-              >
-                {editingProduct ? 'Update Product' : 'Add Product'}
-              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div>
+              <Label>Category</Label>
+              <Input
+                value={productForm.category}
+                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                className="bg-input-background"
+                placeholder="e.g., Clothing, Accessories"
+              />
+            </div>
+            <div>
+              <Label>Merchant ID</Label>
+              <Input
+                value={productForm.merchantId}
+                onChange={(e) => setProductForm({ ...productForm, merchantId: e.target.value })}
+                className="bg-input-background"
+                placeholder="Select or enter merchant ID"
+              />
+            </div>
+            <div>
+              <Label>Image URL</Label>
+              <Input
+                value={productForm.imageUrl}
+                onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
+                className="bg-input-background"
+                placeholder="https://example.com/product-image.jpg"
+              />
+            </div>
+            <div>
+              <Label>Stock</Label>
+              <Input
+                type="number"
+                value={productForm.stock}
+                onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                className="bg-input-background"
+                placeholder="Available quantity"
+                min="0"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={productForm.description}
+                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                className="bg-input-background"
+                rows={4}
+                placeholder="Describe the product..."
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
+              <div>
+                <Label className="text-base font-medium">Product Status</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {productForm.isActive 
+                    ? (language === 'ar' ? 'نشط - مرئي للعملاء' : 'Active - Visible to customers')
+                    : (language === 'ar' ? 'غير نشط - مخفي عن العملاء' : 'Inactive - Hidden from customers')}
+                </p>
+              </div>
+              <Switch
+                checked={productForm.isActive}
+                onCheckedChange={(checked) => setProductForm({ ...productForm, isActive: checked })}
+              />
+            </div>
+            <Button 
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground"
+              onClick={handleSaveProduct}
+            >
+              {editingProduct 
+                ? (language === 'ar' ? 'تحديث المنتج' : 'Update Product')
+                : (language === 'ar' ? 'إضافة منتج' : 'Add Product')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
