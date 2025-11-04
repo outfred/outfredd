@@ -1,10 +1,51 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  baseURL: import.meta.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: import.meta.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
+interface AISettings {
+  provider: 'openai' | 'anthropic' | 'custom';
+  model: string;
+  apiKey: string;
+  baseUrl: string;
+  temperature: number;
+  maxTokens: number;
+  systemPrompt?: string;
+}
+
+function getAISettings(): AISettings {
+  const defaultSettings = {
+    provider: 'openai' as const,
+    model: 'gpt-4o-mini',
+    apiKey: import.meta.env.AI_INTEGRATIONS_OPENAI_API_KEY || '',
+    baseUrl: import.meta.env.AI_INTEGRATIONS_OPENAI_BASE_URL || 'https://openrouter.ai/api/v1',
+    temperature: 0.7,
+    maxTokens: 2000,
+  };
+
+  try {
+    const saved = localStorage.getItem('aiSettings');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      return {
+        ...defaultSettings,
+        ...settings,
+        apiKey: settings.apiKey || defaultSettings.apiKey,
+        baseUrl: settings.baseUrl || defaultSettings.baseUrl,
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to load AI settings, using defaults:', error);
+  }
+
+  return defaultSettings;
+}
+
+function getOpenAIClient(): OpenAI {
+  const settings = getAISettings();
+  return new OpenAI({
+    baseURL: settings.baseUrl,
+    apiKey: settings.apiKey,
+    dangerouslyAllowBrowser: true,
+  });
+}
 
 export interface SearchEnhancement {
   correctedQuery: string;
@@ -20,6 +61,9 @@ export async function enhanceSearchQuery(
   language: 'ar' | 'en'
 ): Promise<SearchEnhancement> {
   try {
+    const openai = getOpenAIClient();
+    const settings = getAISettings();
+    
     const prompt = `You are a fashion search assistant. Analyze this search query and provide structured information.
 
 Query: "${query}"
@@ -43,11 +87,19 @@ Return ONLY a valid JSON object with this exact structure:
   "suggestions": ["suggestion1", "suggestion2", "suggestion3"]
 }`;
 
+    const messages: any[] = [];
+    
+    if (settings.systemPrompt) {
+      messages.push({ role: 'system', content: settings.systemPrompt });
+    }
+    
+    messages.push({ role: 'user', content: prompt });
+
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 500,
+      model: settings.model,
+      messages,
+      temperature: settings.temperature,
+      max_tokens: Math.min(500, settings.maxTokens),
     });
 
     const content = completion.choices[0]?.message?.content?.trim();
@@ -79,15 +131,21 @@ export interface ProductColorAnalysis {
 
 export async function analyzeProductImage(imageUrl: string): Promise<ProductColorAnalysis> {
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
+    const openai = getOpenAIClient();
+    const settings = getAISettings();
+    
+    const messages: any[] = [];
+    
+    if (settings.systemPrompt) {
+      messages.push({ role: 'system', content: settings.systemPrompt });
+    }
+    
+    messages.push({
+      role: 'user',
+      content: [
         {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Analyze this fashion product image and identify the dominant colors. 
+          type: 'text',
+          text: `Analyze this fashion product image and identify the dominant colors. 
 Return ONLY a valid JSON object with this structure:
 {
   "dominantColors": ["color name 1", "color name 2"],
@@ -95,15 +153,19 @@ Return ONLY a valid JSON object with this structure:
   "colorNames": ["descriptive name 1", "descriptive name 2"]
 }
 Limit to 3 most dominant colors.`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: imageUrl },
-            },
-          ],
+        },
+        {
+          type: 'image_url',
+          image_url: { url: imageUrl },
         },
       ],
-      max_tokens: 300,
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: settings.model,
+      messages,
+      temperature: settings.temperature,
+      max_tokens: Math.min(300, settings.maxTokens),
     });
 
     const content = completion.choices[0]?.message?.content?.trim();
@@ -152,6 +214,9 @@ export async function generateOutfitSuggestions(
   language: 'ar' | 'en'
 ): Promise<OutfitSuggestion> {
   try {
+    const openai = getOpenAIClient();
+    const settings = getAISettings();
+    
     let prompt = `You are a professional fashion stylist. Create an outfit suggestion based on these preferences:
 
 ${params.occasion ? `Occasion: ${params.occasion}` : ''}
@@ -178,30 +243,34 @@ Return ONLY a valid JSON object with this structure:
 
 Include 4-6 items that work well together.`;
 
-    const messages: any[] = [
-      {
-        role: 'user',
-        content: params.productImages && params.productImages.length > 0
-          ? [
-              { type: 'text', text: prompt },
-              ...params.productImages.map(url => ({
-                type: 'image_url',
-                image_url: { url },
-              })),
-              {
-                type: 'text',
-                text: 'Analyze these product images and create an outfit that incorporates similar styles and colors.',
-              },
-            ]
-          : prompt,
-      },
-    ];
+    const messages: any[] = [];
+    
+    if (settings.systemPrompt) {
+      messages.push({ role: 'system', content: settings.systemPrompt });
+    }
+    
+    messages.push({
+      role: 'user',
+      content: params.productImages && params.productImages.length > 0
+        ? [
+            { type: 'text', text: prompt },
+            ...params.productImages.map(url => ({
+              type: 'image_url',
+              image_url: { url },
+            })),
+            {
+              type: 'text',
+              text: 'Analyze these product images and create an outfit that incorporates similar styles and colors.',
+            },
+          ]
+        : prompt,
+    });
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: settings.model,
       messages,
-      temperature: 0.7,
-      max_tokens: 1000,
+      temperature: settings.temperature,
+      max_tokens: Math.min(1000, settings.maxTokens),
     });
 
     const content = completion.choices[0]?.message?.content?.trim();

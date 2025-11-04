@@ -516,28 +516,52 @@ export const Admin: React.FC = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics">
-            {/* Quick Link to Statistics Page */}
-            <Card className="p-4 glass-effect border-border mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-primary" />
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card className="p-4 glass-effect border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1">Advanced Statistics</h3>
+                      <p className="text-sm text-muted-foreground">
+                        View detailed analytics
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="mb-1">Advanced Statistics</h3>
-                    <p className="text-sm text-muted-foreground">
-                      View detailed search and product view analytics
-                    </p>
-                  </div>
+                  <Button 
+                    onClick={() => window.location.hash = 'statistics'}
+                    variant="outline"
+                  >
+                    View Statistics
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => window.location.hash = 'statistics'}
-                  variant="outline"
-                >
-                  View Statistics
-                </Button>
-              </div>
-            </Card>
+              </Card>
+
+              <Card className="p-4 glass-effect border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1">AI Settings</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Configure AI models & keys
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => window.location.hash = 'admin-ai-settings'}
+                    variant="outline"
+                  >
+                    Configure AI
+                  </Button>
+                </div>
+              </Card>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="p-6 glass-effect border-border">
@@ -784,7 +808,7 @@ export const Admin: React.FC = () => {
           <TabsContent value="products">
             <Card className="glass-effect border-border">
               <div className="p-6 border-b border-border">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <h2>Product Management</h2>
                   <div className="flex gap-2">
                     <Button 
@@ -802,6 +826,53 @@ export const Admin: React.FC = () => {
                       Add Product
                     </Button>
                   </div>
+                </div>
+                
+                {/* Filter and Bulk Actions */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex-1 min-w-[200px]">
+                    <Label>Filter by Merchant</Label>
+                    <select
+                      value={filterMerchantId}
+                      onChange={(e) => setFilterMerchantId(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 rounded-md border border-border bg-input-background"
+                    >
+                      <option value="">All Merchants</option>
+                      {merchants.map(m => (
+                        <option key={m.id} value={m.id}>{m.brandName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {products.length > 0 && (
+                    <>
+                      <div className="flex items-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={toggleAllProducts}
+                          className="gap-2"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                            readOnly
+                          />
+                          Select All ({filteredProducts.length})
+                        </Button>
+                      </div>
+                      
+                      {selectedProducts.length > 0 && (
+                        <Button
+                          variant="outline"
+                          onClick={handleBulkDelete}
+                          className="gap-2 border-destructive text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Selected ({selectedProducts.length})
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
               <div className="p-6">
@@ -825,8 +896,22 @@ export const Admin: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((product) => (
-                      <Card key={product.id} className="p-4 border-border">
+                    {filteredProducts.map((product) => (
+                      <Card key={product.id} className="p-4 border-border relative">
+                        <div className="absolute top-2 left-2 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(product.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedProducts([...selectedProducts, product.id]);
+                              } else {
+                                setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                              }
+                            }}
+                            className="w-5 h-5 cursor-pointer"
+                          />
+                        </div>
                         {product.imageUrl && (
                           <img 
                             src={product.imageUrl} 
@@ -835,7 +920,10 @@ export const Admin: React.FC = () => {
                           />
                         )}
                         <h3 className="mb-2">{product.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+                        <p className="mb-2">
+                          <Badge variant="outline">{merchants.find(m => m.id === product.merchantId)?.brandName || 'Unknown'}</Badge>
+                        </p>
                         <p className="mb-4">Price: ${product.price}</p>
                         <div className="flex gap-2">
                           <Button

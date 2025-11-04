@@ -10,6 +10,7 @@ import { JoinMerchant } from './pages/JoinMerchant';
 import { Auth } from './pages/Auth';
 import { Admin } from './pages/Admin';
 import { AdminSiteSettings } from './pages/AdminSiteSettings';
+import { AdminAISettings } from './pages/AdminAISettings';
 import { StaticPages } from './pages/StaticPages';
 import { Debug } from './pages/Debug';
 import { MerchantImport } from './pages/MerchantImport';
@@ -32,6 +33,7 @@ type Page =
   | 'register' 
   | 'admin'
   | 'admin-site-settings'
+  | 'admin-ai-settings'
   | 'about'
   | 'privacy'
   | 'contact'
@@ -140,6 +142,8 @@ export default function App() {
         return <Admin />;
       case 'admin-site-settings':
         return <AdminSiteSettings onNavigate={handleNavigate} />;
+      case 'admin-ai-settings':
+        return <AdminAISettings onNavigate={handleNavigate} />;
       case 'import':
         return <MerchantImport />;
       case 'merchant-dashboard':
