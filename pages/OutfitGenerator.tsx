@@ -62,26 +62,36 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({ onNavigate }) 
       if (files.length === 0) return;
 
       setAnalyzingImages(true);
-      const newImages: string[] = [];
       
-      for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageData = event.target?.result as string;
+      try {
+        const newImages: string[] = [];
+        
+        for (const file of files) {
+          const imageData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const result = event.target?.result as string;
+              resolve(result);
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+          });
           newImages.push(imageData);
-        };
-        reader.readAsDataURL(file);
+        }
+        
+        setUploadedImages(prev => [...prev, ...newImages]);
+        
+        toast.success(
+          isRTL 
+            ? `تم رفع ${files.length} صورة` 
+            : `Uploaded ${files.length} image${files.length > 1 ? 's' : ''}`
+        );
+      } catch (error) {
+        console.error('Image upload error:', error);
+        toast.error(isRTL ? 'فشل رفع الصور' : 'Failed to upload images');
+      } finally {
+        setAnalyzingImages(false);
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setUploadedImages(prev => [...prev, ...newImages]);
-      setAnalyzingImages(false);
-      
-      toast.success(
-        isRTL 
-          ? `تم رفع ${files.length} صورة` 
-          : `Uploaded ${files.length} image${files.length > 1 ? 's' : ''}`
-      );
     };
     input.click();
   };
