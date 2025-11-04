@@ -1484,6 +1484,7 @@ const processImport = async (
     for (const rawProduct of rawProducts) {
       try {
         // Normalize product data
+        const parsedStock = parseInt(rawProduct.stock);
         const productData = {
           name: rawProduct.name || rawProduct.title || '',
           description: rawProduct.description || '',
@@ -1492,10 +1493,13 @@ const processImport = async (
           merchantId,
           brand: brandName,
           imageUrl: rawProduct.image || rawProduct.image_url || rawProduct.imageUrl || '',
-          stock: parseInt(rawProduct.stock) || 0,
+          stock: Number.isFinite(parsedStock) ? parsedStock : 100,
           color: rawProduct.color || '',
           sizes: typeof rawProduct.sizes === 'string' ? rawProduct.sizes.split(',') : (rawProduct.sizes || []),
           fit: rawProduct.fit || 'regular',
+          status: 'active',
+          isActive: true,
+          views: 0,
           // Store product URL in multiple fields for compatibility
           url: rawProduct.url || rawProduct.product_url || rawProduct.productUrl || '',
           productUrl: rawProduct.url || rawProduct.product_url || rawProduct.productUrl || '',
