@@ -4,6 +4,7 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import { initDemoData } from "./init.tsx";
 import { fetchProductsFromURL } from "./scraper.tsx";
+import adminRoutes from "./routes_admin.tsx";
 
 const app = new Hono();
 
@@ -2085,5 +2086,15 @@ app.get("/make-server-dec0bed9/merchant-stats/:merchantId", async (c) => {
     return c.json({ error: `Failed to get merchant stats: ${error?.message}` }, 500);
   }
 });
+
+// Middleware to attach user to context for admin routes
+app.use('/make-server-dec0bed9/admin/*', async (c, next) => {
+  const user = await authenticate(c);
+  c.set('user', user);
+  await next();
+});
+
+// Mount admin routes
+app.route('/make-server-dec0bed9/admin', adminRoutes);
 
 Deno.serve(app.fetch);
