@@ -34,6 +34,15 @@ export default defineConfig({
     hmr: {
       clientPort: 5000,
     },
+    watch: {
+      ignored: [
+        '**/.local/**',
+        '**/.cache/**',
+        '**/.replit',
+        '**/replit.nix',
+        '**/node_modules/**',
+      ],
+    },
   },
   preview: {
     host: '0.0.0.0',
