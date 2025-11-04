@@ -285,11 +285,11 @@ export const Admin: React.FC = () => {
     setProductForm({
       name: product.name || '',
       description: product.description || '',
-      price: product.price || '',
+      price: product.price ?? '',
       category: product.category || '',
       merchantId: product.merchantId || '',
       imageUrl: product.imageUrl || '',
-      stock: product.stock || '',
+      stock: product.stock ?? '',
     });
     setIsProductDialogOpen(true);
   };

@@ -6,6 +6,13 @@ Outfred is a modern fashion discovery platform built with React, TypeScript, and
 
 # Recent Changes
 
+## November 4, 2025 - Admin Panel Enhancements & AI Configuration
+- **Product filtering & bulk operations:** Added merchant/store dropdown filter, product checkboxes, "Select All" and "Delete Selected" buttons in admin panel
+- **AI Settings page:** Created AdminAISettings.tsx with full control over AI provider (OpenAI/Anthropic/Custom), model selection, API key, temperature, max tokens, and system prompts
+- **AI integration fixes:** Updated utils/aiSearch.ts to dynamically read custom AI settings from localStorage - all AI functions (smart search, image analysis, outfit generation) now honor user-configured settings
+- **Data persistence:** AI settings stored in localStorage with reset-to-defaults option
+- **Bug fixes:** Fixed productForm state to preserve stock field including zero values using nullish coalescing operator
+
 ## November 4, 2025 - Vercel to Replit Migration
 - Configured Vite to bind to 0.0.0.0:5000 for Replit compatibility
 - Fixed all versioned imports (removed @version suffixes from imports)
@@ -122,6 +129,9 @@ Preferred communication style: Simple, everyday language.
 - URL validation only
 
 **AI/ML Integration:**
-- No AI library integrated yet
-- Outfit generator is placeholder functionality
-- Image similarity detection planned but not active
+- OpenAI integration via javascript_openai_ai_integrations
+- AI-powered smart search with Arabic/English support, color detection, and autocorrect (utils/aiSearch.ts)
+- Outfit generator with image analysis, color selection, budget ranges, and custom prompts
+- Product image color analysis using GPT-4 Vision
+- Admin-configurable AI settings (provider, model, temperature, max tokens, system prompts) stored in localStorage
+- Dynamic AI client initialization based on custom settings (getAISettings, getOpenAIClient)
