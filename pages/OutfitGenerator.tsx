@@ -6,6 +6,7 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Slider } from '../components/ui/slider';
+import { Textarea } from '../components/ui/textarea';
 import { 
   Select,
   SelectContent,
@@ -18,11 +19,12 @@ import { Separator } from '../components/ui/separator';
 import { 
   Sparkles, Wand2, TrendingUp, Heart, ShoppingCart, 
   ArrowLeft, Settings, Palette, Users, Clock, Sun,
-  Shirt, User, ArrowUpDown
+  Shirt, User, ArrowUpDown, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { productsApi } from '../utils/api';
 import { toast } from 'sonner';
+import { generateOutfitSuggestions, analyzeProductImage } from '../utils/aiSearch';
 
 interface OutfitGeneratorProps {
   onNavigate: (page: string, params?: any) => void;
@@ -39,82 +41,98 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({ onNavigate }) 
   const [style, setStyle] = useState('modern');
   const [season, setSeason] = useState('summer');
   const [heightCm, setHeightCm] = useState<number>(170);
-  const [colorPreference, setColorPreference] = useState('any');
-  const [budget, setBudget] = useState('medium');
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [minBudget, setMinBudget] = useState<number>(0);
+  const [maxBudget, setMaxBudget] = useState<number>(10000);
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   
   // Results
   const [generatedOutfit, setGeneratedOutfit] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [analyzingImages, setAnalyzingImages] = useState(false);
+
+  const handleImageUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = async (e: any) => {
+      const files = Array.from(e.target?.files || []) as File[];
+      if (files.length === 0) return;
+
+      setAnalyzingImages(true);
+      const newImages: string[] = [];
+      
+      for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageData = event.target?.result as string;
+          newImages.push(imageData);
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setUploadedImages(prev => [...prev, ...newImages]);
+      setAnalyzingImages(false);
+      
+      toast.success(
+        isRTL 
+          ? `تم رفع ${files.length} صورة` 
+          : `Uploaded ${files.length} image${files.length > 1 ? 's' : ''}`
+      );
+    };
+    input.click();
+  };
+
+  const toggleColor = (color: string) => {
+    setSelectedColors(prev => 
+      prev.includes(color) 
+        ? prev.filter(c => c !== color) 
+        : [...prev, color]
+    );
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
     
     try {
-      // Show loading message
-      toast.info(
+      toast.loading(
         isRTL 
-          ? 'جاري توليد اللوك المناسب ليك...' 
-          : 'Generating your perfect outfit...',
-        { duration: 2000 }
+          ? 'جاري توليد اللوك المناسب ليك بالذكاء الاصطناعي...' 
+          : 'Generating your perfect outfit with AI...',
+        { id: 'outfit-gen' }
       );
 
-      // Get all products
+      const aiSuggestion = await generateOutfitSuggestions({
+        occasion,
+        style: `${style} ${season} ${gender}`,
+        colors: selectedColors.length > 0 ? selectedColors : undefined,
+        budget: { min: minBudget, max: maxBudget },
+        customPrompt,
+        productImages: uploadedImages.length > 0 ? uploadedImages : undefined,
+      }, language);
+
+      toast.dismiss('outfit-gen');
+
       const { products } = await productsApi.list();
-      
-      if (!products || products.length === 0) {
-        toast.error(
-          isRTL 
-            ? 'مفيش منتجات متاحة حالياً' 
-            : 'No products available currently'
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Simulate AI outfit generation
-      // In production, this would call an AI API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Filter products based on preferences (basic filtering)
       let filteredProducts = [...products].filter(p => p.status === 'active');
       
-      // Randomly select outfit items
-      const categories = {
-        top: ['Shirt', 'T-Shirt', 'Blouse', 'Top'],
-        bottom: ['Pants', 'Jeans', 'Skirt', 'Shorts'],
-        shoes: ['Shoes', 'Sneakers', 'Boots', 'Heels'],
-        accessories: ['Bag', 'Watch', 'Jewelry', 'Accessories']
-      };
-
-      const outfit = {
-        top: filteredProducts.find(p => 
-          categories.top.some(cat => p.category?.includes(cat) || p.name?.toLowerCase().includes(cat.toLowerCase()))
-        ),
-        bottom: filteredProducts.find(p => 
-          categories.bottom.some(cat => p.category?.includes(cat) || p.name?.toLowerCase().includes(cat.toLowerCase()))
-        ),
-        shoes: filteredProducts.find(p => 
-          categories.shoes.some(cat => p.category?.includes(cat) || p.name?.toLowerCase().includes(cat.toLowerCase()))
-        ),
-        accessories: filteredProducts.find(p => 
-          categories.accessories.some(cat => p.category?.includes(cat) || p.name?.toLowerCase().includes(cat.toLowerCase()))
-        ),
-      };
-
-      // Fill missing items with random products
-      if (!outfit.top && filteredProducts.length > 0) outfit.top = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
-      if (!outfit.bottom && filteredProducts.length > 1) outfit.bottom = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
-      if (!outfit.shoes && filteredProducts.length > 2) outfit.shoes = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
-      if (!outfit.accessories && filteredProducts.length > 3) outfit.accessories = filteredProducts[Math.floor(Math.random() * filteredProducts.length)];
+      if (minBudget > 0 || maxBudget < 10000) {
+        filteredProducts = filteredProducts.filter(p => {
+          const price = parseFloat(p.price);
+          if (isNaN(price)) return true;
+          return price >= minBudget && price <= maxBudget;
+        });
+      }
 
       setGeneratedOutfit({
-        items: [outfit.top, outfit.bottom, outfit.shoes, outfit.accessories].filter(Boolean),
-        totalPrice: [outfit.top, outfit.bottom, outfit.shoes, outfit.accessories]
-          .filter(Boolean)
-          .reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0),
-        style: style,
-        occasion: occasion,
-        heightSuitability: heightCm >= 160 && heightCm <= 180 ? 'perfect' : 'good',
+        aiSuggestion,
+        items: filteredProducts.slice(0, 6),
+        totalPrice: filteredProducts.slice(0, 6).reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0),
+        style,
+        occasion,
       });
 
       toast.success(
@@ -125,6 +143,7 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({ onNavigate }) 
 
     } catch (error) {
       console.error('Error generating outfit:', error);
+      toast.dismiss('outfit-gen');
       toast.error(
         isRTL 
           ? 'في مشكلة في توليد اللوك. جرب تاني' 
@@ -299,39 +318,99 @@ export const OutfitGenerator: React.FC<OutfitGeneratorProps> = ({ onNavigate }) 
 
                 <Separator />
 
-                {/* Color Preference */}
+                {/* Color Selection */}
                 <div>
-                  <Label className="mb-2">
-                    {isRTL ? 'اللون المفضل' : 'Color Preference'}
+                  <Label className="mb-3 flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    {isRTL ? 'الألوان المفضلة' : 'Preferred Colors'}
                   </Label>
-                  <Select value={colorPreference} onValueChange={setColorPreference}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">{isRTL ? 'أي لون' : 'Any Color'}</SelectItem>
-                      <SelectItem value="neutral">{isRTL ? 'ألوان محايدة' : 'Neutral'}</SelectItem>
-                      <SelectItem value="bright">{isRTL ? 'ألوان زاهية' : 'Bright'}</SelectItem>
-                      <SelectItem value="dark">{isRTL ? 'ألوان غامقة' : 'Dark'}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['black', 'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'brown'].map(color => (
+                      <Button
+                        key={color}
+                        variant={selectedColors.includes(color) ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => toggleColor(color)}
+                        className="capitalize"
+                      >
+                        {color}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Budget */}
+                <Separator />
+
+                {/* Budget Range */}
+                <div>
+                  <Label className="mb-3">
+                    {isRTL ? `الميزانية: ${minBudget} - ${maxBudget} ج.م` : `Budget: ${minBudget} - ${maxBudget} EGP`}
+                  </Label>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{isRTL ? 'الحد الأدنى' : 'Min'}</Label>
+                      <Input
+                        type="number"
+                        value={minBudget}
+                        onChange={(e) => setMinBudget(Number(e.target.value))}
+                        min={0}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{isRTL ? 'الحد الأقصى' : 'Max'}</Label>
+                      <Input
+                        type="number"
+                        value={maxBudget}
+                        onChange={(e) => setMaxBudget(Number(e.target.value))}
+                        min={minBudget}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Image Upload */}
+                <div>
+                  <Label className="mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    {isRTL ? 'رفع صور للإلهام' : 'Upload Images for Inspiration'}
+                  </Label>
+                  <Button
+                    variant="outline"
+                    onClick={handleImageUpload}
+                    disabled={analyzingImages}
+                    className="w-full gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {analyzingImages ? (isRTL ? 'جاري الرفع...' : 'Uploading...') : (isRTL ? 'رفع صور' : 'Upload Images')}
+                  </Button>
+                  {uploadedImages.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {uploadedImages.map((img, i) => (
+                        <div key={i} className="relative w-16 h-16 rounded overflow-hidden border">
+                          <img src={img} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Custom Prompt */}
                 <div>
                   <Label className="mb-2">
-                    {isRTL ? 'الميزانية' : 'Budget'}
+                    {isRTL ? 'طلب مخصص (اختياري)' : 'Custom Request (Optional)'}
                   </Label>
-                  <Select value={budget} onValueChange={setBudget}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">{isRTL ? 'اقتصادي' : 'Budget'}</SelectItem>
-                      <SelectItem value="medium">{isRTL ? 'متوسط' : 'Medium'}</SelectItem>
-                      <SelectItem value="high">{isRTL ? 'فاخر' : 'Premium'}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Textarea
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder={isRTL ? 'مثلاً: عايز لوك أنيق لحفلة صيفية مع كسسوارات ذهبية' : 'e.g., I want an elegant look for a summer party with gold accessories'}
+                    className="min-h-[80px]"
+                  />
                 </div>
 
                 <Button

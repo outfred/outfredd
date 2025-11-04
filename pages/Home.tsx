@@ -3,10 +3,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
-import { Search, Image, Sparkles, TrendingUp, Package } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Search, Image, Sparkles, TrendingUp, Package, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { productsApi } from '../utils/api';
 import { toast } from 'sonner';
+import { enhanceSearchQuery, analyzeProductImage } from '../utils/aiSearch';
 
 interface HomeProps {
   onNavigate?: (page: string, productId?: string) => void;
@@ -18,28 +20,92 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageSearching, setImageSearching] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [detectedColors, setDetectedColors] = useState<string[]>([]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
+  const handleSearch = async (query?: string) => {
+    const searchTerm = query || searchQuery;
+    if (!searchTerm.trim()) {
       toast.error(language === 'ar' ? 'الرجاء إدخال كلمة البحث' : 'Please enter a search query');
       return;
     }
 
     setLoading(true);
     try {
-      // Record search in statistics
-      await productsApi.recordSearch(searchQuery, language);
+      toast.loading(language === 'ar' ? 'جاري تحليل البحث...' : 'Analyzing search...', { id: 'ai-search' });
       
-      const { results } = await productsApi.search(searchQuery);
-      setSearchResults(results);
+      const enhancement = await enhanceSearchQuery(searchTerm, language);
       
-      if (results.length === 0) {
+      toast.dismiss('ai-search');
+      
+      if (enhancement.correctedQuery !== searchTerm) {
+        toast.info(
+          language === 'ar' 
+            ? `هل تقصد: "${enhancement.correctedQuery}"؟` 
+            : `Did you mean: "${enhancement.correctedQuery}"?`
+        );
+        setSearchQuery(enhancement.correctedQuery);
+      }
+      
+      if (enhancement.suggestions && enhancement.suggestions.length > 0) {
+        setSearchSuggestions(enhancement.suggestions);
+      }
+      
+      if (enhancement.colors && enhancement.colors.length > 0) {
+        setDetectedColors(enhancement.colors);
+      }
+      
+      await productsApi.recordSearch(searchTerm, language);
+      
+      const queryToSearch = enhancement.translatedQuery || enhancement.correctedQuery;
+      const { results } = await productsApi.search(queryToSearch);
+      
+      let filteredResults = results;
+      
+      if (enhancement.colors && enhancement.colors.length > 0) {
+        const colorKeywords = enhancement.colors.map(c => c.toLowerCase());
+        filteredResults = results.filter((p: any) => {
+          const productText = `${p.name} ${p.description || ''} ${p.category || ''}`.toLowerCase();
+          return colorKeywords.some(color => productText.includes(color));
+        });
+        
+        if (filteredResults.length === 0) {
+          filteredResults = results;
+        }
+      }
+      
+      if (enhancement.categories && enhancement.categories.length > 0) {
+        const categoryKeywords = enhancement.categories.map(c => c.toLowerCase());
+        const categoryFiltered = filteredResults.filter((p: any) => {
+          const productText = `${p.name} ${p.description || ''} ${p.category || ''}`.toLowerCase();
+          return categoryKeywords.some(cat => productText.includes(cat));
+        });
+        
+        if (categoryFiltered.length > 0) {
+          filteredResults = categoryFiltered;
+        }
+      }
+      
+      if (enhancement.priceRange) {
+        filteredResults = filteredResults.filter((p: any) => {
+          const price = parseFloat(p.price);
+          if (isNaN(price)) return true;
+          
+          if (enhancement.priceRange!.min && price < enhancement.priceRange!.min) return false;
+          if (enhancement.priceRange!.max && price > enhancement.priceRange!.max) return false;
+          return true;
+        });
+      }
+      
+      setSearchResults(filteredResults);
+      
+      if (filteredResults.length === 0) {
         toast.info(language === 'ar' ? 'لم يتم العثور على منتجات' : 'No products found. Try a different search term.');
       } else {
         toast.success(
           language === 'ar' 
-            ? `تم العثور على ${results.length} منتج` 
-            : `Found ${results.length} product${results.length > 1 ? 's' : ''}`
+            ? `تم العثور على ${filteredResults.length} منتج` 
+            : `Found ${filteredResults.length} product${filteredResults.length > 1 ? 's' : ''}`
         );
       }
     } catch (error) {
@@ -153,6 +219,48 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   {loading ? t('loading') : t('smartSearch')}
                 </Button>
               </div>
+
+              {(searchSuggestions.length > 0 || detectedColors.length > 0) && (
+                <div className="mb-4 p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-white/30">
+                  {detectedColors.length > 0 && (
+                    <div className="mb-3">
+                      <span className="text-sm font-medium text-muted-foreground mb-2 block">
+                        {language === 'ar' ? 'الألوان المكتشفة:' : 'Detected Colors:'}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {detectedColors.map((color, i) => (
+                          <Badge key={i} variant="secondary" className="capitalize">
+                            {color}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {searchSuggestions.length > 0 && (
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground mb-2 block">
+                        {language === 'ar' ? 'اقتراحات البحث:' : 'Search Suggestions:'}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {searchSuggestions.map((suggestion, i) => (
+                          <Button
+                            key={i}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSearchQuery(suggestion);
+                              handleSearch(suggestion);
+                            }}
+                            className="text-xs"
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
