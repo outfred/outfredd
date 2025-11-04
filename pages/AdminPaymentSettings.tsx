@@ -114,13 +114,47 @@ export const AdminPaymentSettings: React.FC = () => {
       toast.error(language === 'ar' ? 'الرجاء إدخال البريد الإلكتروني' : 'Please enter email address');
       return;
     }
+
+    if (!smtpSettings.is_enabled) {
+      toast.error(language === 'ar' ? 'الرجاء تفعيل SMTP أولاً' : 'Please enable SMTP first');
+      return;
+    }
+
+    if (!smtpSettings.host || !smtpSettings.username || !smtpSettings.password) {
+      toast.error(language === 'ar' ? 'الرجاء إكمال إعدادات SMTP' : 'Please complete SMTP settings');
+      return;
+    }
     
     try {
       setLoading(true);
-      const result = await smtpApi.sendTest(testEmail);
-      toast.success(result.message || (language === 'ar' ? 'تم إرسال رسالة تجريبية' : 'Test email sent'));
-      setShowTestEmailDialog(false);
-      setTestEmail('');
+      
+      const { sendEmail, emailTemplates } = await import('../utils/emailTemplates');
+      const template = emailTemplates.test(language);
+      
+      console.log('📧 Sending test email to:', testEmail);
+      console.log('📋 SMTP Settings:', {
+        host: smtpSettings.host,
+        port: smtpSettings.port,
+        from: smtpSettings.from_email
+      });
+      
+      const result = await sendEmail(testEmail, template.subject, template.body);
+      
+      if (result.success) {
+        toast.success(
+          language === 'ar' 
+            ? '✅ تم إرسال الرسالة بنجاح! تحقق من بريدك الإلكتروني.' 
+            : '✅ Email sent successfully! Check your inbox.'
+        );
+        setShowTestEmailDialog(false);
+        setTestEmail('');
+      } else {
+        toast.error(
+          language === 'ar' 
+            ? `❌ فشل الإرسال: ${result.error}` 
+            : `❌ Failed: ${result.error}`
+        );
+      }
     } catch (error) {
       console.error('Failed to send test email:', error);
       toast.error(language === 'ar' ? 'فشل إرسال الرسالة' : 'Failed to send test email');
