@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
 import { 
   Users, Store, Package, Settings, Layout, BarChart3, 
   Trash2, CheckCircle, XCircle, Shield, Plus, Edit, UserPlus, Save, Palette, Copy, Check
@@ -50,6 +51,7 @@ export const Admin: React.FC = () => {
     merchantId: '',
     imageUrl: '',
     stock: '',
+    isActive: true,
   });
 
   // Merchant Edit Dialog State
@@ -276,6 +278,7 @@ export const Admin: React.FC = () => {
       merchantId: '',
       imageUrl: '',
       stock: '',
+      isActive: true,
     });
     setIsProductDialogOpen(true);
   };
@@ -290,6 +293,7 @@ export const Admin: React.FC = () => {
       merchantId: product.merchantId || '',
       imageUrl: product.imageUrl || '',
       stock: product.stock ?? '',
+      isActive: product.isActive !== false,
     });
     setIsProductDialogOpen(true);
   };
@@ -1311,6 +1315,17 @@ export const Admin: React.FC = () => {
                 />
               </div>
               <div>
+                <Label>Stock</Label>
+                <Input
+                  type="number"
+                  value={productForm.stock}
+                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  className="bg-input-background"
+                  placeholder="Available quantity"
+                  min="0"
+                />
+              </div>
+              <div>
                 <Label>Description</Label>
                 <Textarea
                   value={productForm.description}
@@ -1318,6 +1333,18 @@ export const Admin: React.FC = () => {
                   className="bg-input-background"
                   rows={4}
                   placeholder="Describe the product..."
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
+                <div>
+                  <Label className="text-base font-medium">Product Status</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {productForm.isActive ? 'Active - Visible to customers' : 'Inactive - Hidden from customers'}
+                  </p>
+                </div>
+                <Switch
+                  checked={productForm.isActive}
+                  onCheckedChange={(checked) => setProductForm({ ...productForm, isActive: checked })}
                 />
               </div>
               <Button 
