@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 // Test script for subscription endpoints
-const API_BASE = 'http://localhost:5000/make-server-dec0bed9';
+const PROJECT_ID = 'yilnhwzfgezkqeskhrkq';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbG5od3pmZ2V6a3Flc2tocmtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwMTAxNzIsImV4cCI6MjA3NzU4NjE3Mn0.NZ1cqPAVL2xuc6nftN3Bt-nLLNZ4wjKoztGDZWqTpVg';
+const API_BASE = `https://${PROJECT_ID}.supabase.co/functions/v1/make-server-dec0bed9`;
 
 // Test results tracking
 const testResults = {
@@ -16,6 +18,7 @@ async function apiRequest(endpoint, method = 'GET', body = null, headers = {}) {
     method,
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ANON_KEY}`,
       ...headers
     }
   };
@@ -25,10 +28,26 @@ async function apiRequest(endpoint, method = 'GET', body = null, headers = {}) {
   }
 
   try {
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
-    const data = await response.json();
+    const url = `${API_BASE}${endpoint}`;
+    console.log(`   → Request: ${method} ${url}`);
+    const response = await fetch(url, options);
+    
+    // Get response text first
+    const responseText = await response.text();
+    
+    // Try to parse as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+      console.log(`   ← Response: ${response.status}`, Object.keys(data).join(', '));
+    } catch (parseError) {
+      console.error(`   ✖ JSON Parse Error. Response text (first 200 chars): ${responseText.substring(0, 200)}`);
+      return { status: response.status, error: 'Invalid JSON response', responseText: responseText.substring(0, 500) };
+    }
+    
     return { status: response.status, data };
   } catch (error) {
+    console.error(`   ✖ Network Error: ${error.message}`);
     return { status: 0, error: error.message };
   }
 }
