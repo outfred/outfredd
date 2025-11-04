@@ -87,9 +87,14 @@ export const MerchantImport: React.FC = () => {
 
   const loadMerchants = async () => {
     try {
+      // Only load merchants list for non-merchant users
+      if (user?.role === 'merchant') {
+        return; // Merchants don't need the full list
+      }
+      
       const data = await merchantsApi.list();
       setMerchants(data.merchants.filter((m: any) => m.status === 'approved'));
-      if (data.merchants.length > 0 && !selectedMerchant && user?.role !== 'merchant') {
+      if (data.merchants.length > 0 && !selectedMerchant) {
         setSelectedMerchant(data.merchants[0].id);
       }
     } catch (error) {
@@ -129,7 +134,24 @@ export const MerchantImport: React.FC = () => {
   };
 
   const startImport = async () => {
-    if (!selectedMerchant) {
+    // For merchant users, force using their own store ID
+    let merchantId = selectedMerchant;
+    
+    if (user?.role === 'merchant') {
+      try {
+        const data = await merchantsApi.getUserMerchant();
+        if (!data.merchant) {
+          toast.error(language === 'ar' ? 'لا يمكن العثور على متجرك. يرجى الاتصال بالدعم.' : 'Cannot find your store. Please contact support.');
+          return;
+        }
+        merchantId = data.merchant.id;
+      } catch (error) {
+        toast.error(language === 'ar' ? 'خطأ في تحميل معلومات متجرك' : 'Error loading your store information');
+        return;
+      }
+    }
+    
+    if (!merchantId) {
       toast.error(language === 'ar' ? 'الرجاء اختيار متجر' : 'Please select a merchant');
       return;
     }
@@ -163,7 +185,7 @@ export const MerchantImport: React.FC = () => {
 
     try {
       const response = await productsApi.importStart({
-        merchantId: selectedMerchant,
+        merchantId: merchantId,
         sourceType,
         sourceData,
         options: {

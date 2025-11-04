@@ -115,13 +115,20 @@ export const MerchantDashboard: React.FC<{ onNavigate: (page: string) => void }>
   const loadProducts = async () => {
     try {
       const response = await productsApi.list(user?.id);
-      setProducts(response.products || []);
+      const productsList = response.products || [];
+      setProducts(productsList);
+      
+      // Calculate real statistics
+      const totalViews = productsList.reduce((sum: number, product: any) => 
+        sum + (product.views || 0), 0
+      );
+      
       setStats(prev => ({
         ...prev,
-        totalProducts: response.products?.length || 0,
-        activeProducts: response.products?.filter((p: any) => p.status === 'active').length || 0,
-        views: Math.floor(Math.random() * 1000) + 100,
-        orders: Math.floor(Math.random() * 50) + 5,
+        totalProducts: productsList.length,
+        activeProducts: productsList.filter((p: any) => p.isActive !== false && p.status !== 'inactive').length,
+        views: totalViews,
+        orders: 0, // Will be added when order system is implemented
       }));
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -463,12 +470,12 @@ export const MerchantDashboard: React.FC<{ onNavigate: (page: string) => void }>
 
                   <div className="p-4 rounded-lg bg-secondary/20">
                     <div className="flex items-center gap-3 mb-2">
-                      <Users className="w-5 h-5 text-accent" />
-                      <h4>{language === 'ar' ? 'العملاء' : 'Customers'}</h4>
+                      <Globe className="w-5 h-5 text-accent" />
+                      <h4>{language === 'ar' ? 'زوار صفحة المتجر' : 'Store Page Visitors'}</h4>
                     </div>
-                    <p className="text-2xl">{Math.floor(stats.orders * 1.5)}</p>
+                    <p className="text-2xl">{stats.pageViews}</p>
                     <p className="text-sm text-muted-foreground">
-                      {language === 'ar' ? 'عميل فريد' : 'Unique visitors'}
+                      {language === 'ar' ? 'إجمالي الزيارات' : 'Total visits'}
                     </p>
                   </div>
                 </div>
