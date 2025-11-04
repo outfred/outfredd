@@ -117,7 +117,6 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   };
 
   const handleImageSearch = () => {
-    // Create a hidden file input
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -127,41 +126,53 @@ export const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
       setImageSearching(true);
       try {
-        // Show preview
         const reader = new FileReader();
-        reader.onload = (event) => {
-          toast.info(
-            language === 'ar' 
-              ? 'جاري البحث عن منتجات مشابهة...' 
-              : 'Searching for similar products...',
-            { duration: 2000 }
-          );
+        reader.onload = async (event) => {
+          try {
+            const imageUrl = event.target?.result as string;
+            
+            toast.loading(language === 'ar' ? 'جاري تحليل الصورة...' : 'Analyzing image...', { id: 'image-search' });
+            
+            const colorAnalysis = await analyzeProductImage(imageUrl);
+            
+            toast.dismiss('image-search');
+            
+            if (colorAnalysis.dominantColors.length > 0) {
+              setDetectedColors(colorAnalysis.dominantColors);
+              
+              const response = await productsApi.list();
+              const allProducts = response.products || [];
+              
+              const colorKeywords = colorAnalysis.dominantColors.map(c => c.toLowerCase());
+              const matchingProducts = allProducts.filter((p: any) => {
+                const productText = `${p.name} ${p.description || ''} ${p.category || ''} ${p.color || ''}`.toLowerCase();
+                return colorKeywords.some(color => productText.includes(color));
+              });
+              
+              if (matchingProducts.length > 0) {
+                setSearchResults(matchingProducts.slice(0, 12));
+                toast.success(
+                  language === 'ar' 
+                    ? `تم العثور على ${matchingProducts.length} منتج بألوان ${colorAnalysis.dominantColors.join(', ')}` 
+                    : `Found ${matchingProducts.length} products with ${colorAnalysis.dominantColors.join(', ')} colors`
+                );
+              } else {
+                setSearchResults(allProducts.slice(0, 8));
+                toast.info(language === 'ar' ? 'لم يتم العثور على تطابقات دقيقة، إليك بعض الاقتراحات' : 'No exact matches, here are some suggestions');
+              }
+            } else {
+              const response = await productsApi.list();
+              setSearchResults(response.products?.slice(0, 8) || []);
+              toast.info(language === 'ar' ? 'تعذر تحليل الصورة، إليك بعض المنتجات' : 'Could not analyze image, showing some products');
+            }
+          } catch (error) {
+            console.error('Image analysis error:', error);
+            const response = await productsApi.list();
+            setSearchResults(response.products?.slice(0, 8) || []);
+            toast.info(language === 'ar' ? 'تعذر تحليل الصورة، إليك بعض المنتجات' : 'Could not analyze image, showing some products');
+          }
         };
         reader.readAsDataURL(file);
-
-        // For now, do a general search to show functionality
-        // In production, you would send the image to an AI service
-        const response = await productsApi.list();
-        const allProducts = response.products || [];
-        
-        // Simulate image search by showing random products
-        if (allProducts.length > 0) {
-          const randomProducts = [...allProducts].sort(() => 0.5 - Math.random()).slice(0, 8);
-          setSearchResults(randomProducts);
-          
-          toast.success(
-            language === 'ar' 
-              ? `تم العثور على ${randomProducts.length} منتج مشابه` 
-              : `Found ${randomProducts.length} similar products`
-          );
-        } else {
-          toast.info(
-            language === 'ar' 
-              ? 'لا توجد منتجات للبحث' 
-              : 'No products available for search'
-          );
-          setSearchResults([]);
-        }
       } catch (error) {
         console.error('Image search error:', error);
         toast.error(language === 'ar' ? 'فشل البحث بالصورة' : 'Image search failed');

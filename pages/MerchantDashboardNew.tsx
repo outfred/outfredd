@@ -30,6 +30,7 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
     totalSales: 0,
     revenue: 0,
   });
+  const [topProducts, setTopProducts] = useState<any[]>([]);
 
   useEffect(() => {
     if (user?.role === 'merchant') {
@@ -74,11 +75,14 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
   const loadPageViewStats = async (merchantId: string) => {
     try {
       const { projectId, publicAnonKey } = await import('../utils/supabase/info');
+      const token = localStorage.getItem('outfred_token');
+      
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-dec0bed9/merchant-page-views/${merchantId}`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-dec0bed9/merchant-stats/${merchantId}`,
         {
           headers: {
             'Authorization': `Bearer ${publicAnonKey}`,
+            'X-Access-Token': token || '',
           },
         }
       );
@@ -86,13 +90,14 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
         const data = await response.json();
         setStats(prev => ({
           ...prev,
-          totalViews: data.totalViews || 0,
-          totalSales: Math.floor((data.totalViews || 0) * 0.15), // Estimate
-          revenue: Math.floor((data.totalViews || 0) * 164), // Estimate
+          totalViews: data.totalPageViews + data.totalProductViews,
+          totalSales: Math.floor((data.totalProductViews || 0) * 0.15),
+          revenue: Math.floor((data.totalProductViews || 0) * 164),
         }));
+        setTopProducts(data.topProducts || []);
       }
     } catch (error) {
-      console.error('Failed to load page views:', error);
+      console.error('Failed to load merchant stats:', error);
     }
   };
 
@@ -324,6 +329,29 @@ export const MerchantDashboardNew: React.FC<MerchantDashboardNewProps> = ({ onNa
                   </div>
                 </Card>
               </div>
+
+              {/* Top Products Section */}
+              {topProducts.length > 0 && (
+                <Card className="p-6 bg-white rounded-3xl border border-gray-200">
+                  <h3 className="font-medium mb-6">{language === 'ar' ? 'أكثر المنتجات مشاهدة' : 'Top Viewed Products'}</h3>
+                  <div className="space-y-4">
+                    {topProducts.map((product, index) => (
+                      <div key={product.productId} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3B1728] to-[#8B4665] flex items-center justify-center text-white font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{product.productName}</div>
+                            <div className="text-sm text-gray-500">{product.views} {language === 'ar' ? 'مشاهدة' : 'views'}</div>
+                          </div>
+                        </div>
+                        <Eye className="w-5 h-5 text-gray-400" />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Products Tab */}
