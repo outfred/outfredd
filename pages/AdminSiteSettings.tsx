@@ -105,7 +105,10 @@ export const AdminSiteSettings: React.FC = () => {
       };
       await siteSettingsApi.update(allSettings);
       toast.success(language === 'ar' ? 'تم حفظ إعدادات SEO' : 'SEO settings saved');
-      window.dispatchEvent(new Event('storage'));
+      
+      window.dispatchEvent(new CustomEvent('logoChanged', { 
+        detail: { logo: seoSettings.logo_url } 
+      }));
     } catch (error) {
       console.error('Failed to save SEO settings:', error);
       toast.error(language === 'ar' ? 'فشل حفظ إعدادات SEO' : 'Failed to save SEO settings');

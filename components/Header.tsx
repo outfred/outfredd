@@ -23,8 +23,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage }) => {
         const settings = localStorage.getItem('admin_site_settings');
         if (settings) {
           const parsed = JSON.parse(settings);
-          if (parsed.branding?.logo) {
-            setLogo(parsed.branding.logo);
+          if (parsed.seo?.logo_url) {
+            setLogo(parsed.seo.logo_url);
           } else {
             setLogo(defaultLogo);
           }
@@ -35,14 +35,22 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage }) => {
       }
     };
 
+    const handleLogoChange = (e: any) => {
+      if (e.detail?.logo) {
+        setLogo(e.detail.logo);
+      } else {
+        updateLogo();
+      }
+    };
+
     updateLogo();
     
+    window.addEventListener('logoChanged', handleLogoChange as EventListener);
     window.addEventListener('storage', updateLogo);
-    const interval = setInterval(updateLogo, 1000);
     
     return () => {
+      window.removeEventListener('logoChanged', handleLogoChange as EventListener);
       window.removeEventListener('storage', updateLogo);
-      clearInterval(interval);
     };
   }, []);
 
