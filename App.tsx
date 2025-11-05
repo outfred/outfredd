@@ -15,6 +15,7 @@ import { AdminSubscriptions } from './pages/AdminSubscriptions';
 import { AdminCMS } from './pages/AdminCMS';
 import { AdminPaymentSettings } from './pages/AdminPaymentSettings';
 import { AdminAnalytics } from './pages/AdminAnalytics';
+import { AdminEmailTemplates } from './pages/AdminEmailTemplates';
 import { AccountSettings } from './pages/AccountSettings';
 import { StaticPages } from './pages/StaticPages';
 import { Debug } from './pages/Debug';
@@ -48,6 +49,7 @@ type Page =
   | 'admin-subscriptions'
   | 'admin-cms'
   | 'admin-payment-settings'
+  | 'admin-email-templates'
   | 'admin-analytics'
   | 'about'
   | 'privacy'
@@ -225,6 +227,8 @@ export default function App() {
         return <AdminCMS />;
       case 'admin-payment-settings':
         return <AdminPaymentSettings />;
+      case 'admin-email-templates':
+        return <AdminEmailTemplates />;
       case 'admin-analytics':
         return <AdminAnalytics />;
       case 'import':

@@ -41,12 +41,6 @@ export const Account: React.FC<{ onNavigate?: (page: string) => void }> = ({ onN
     dataSharing: false,
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    productUpdates: false,
-    merchantNews: true,
-  });
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -65,14 +59,6 @@ export const Account: React.FC<{ onNavigate?: (page: string) => void }> = ({ onN
     // Simulate saving profile
     toast.success('Profile updated successfully!');
     setIsEditingProfile(false);
-  };
-
-  const handleNotificationToggle = (key: string) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof typeof prev]
-    }));
-    toast.success(language === 'ar' ? 'تم تحديث الإشعارات' : 'Notification settings updated!');
   };
 
   const handleChangePassword = () => {
@@ -279,75 +265,6 @@ export const Account: React.FC<{ onNavigate?: (page: string) => void }> = ({ onN
                   <Shield className="w-4 h-4" />
                   {language === 'ar' ? 'إعدادات الخصوصية' : 'Privacy Settings'}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start gap-2 border-border hover:bg-secondary"
-                  onClick={() => handleNotificationToggle('emailNotifications')}
-                >
-                  <Bell className="w-4 h-4" />
-                  {language === 'ar' ? 'إعدادات الإشعارات' : 'Notification Settings'}
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Notification Preferences */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="p-6 glass-effect border-border">
-              <div className="flex items-center gap-3 mb-6">
-                <Bell className="w-6 h-6 text-primary" />
-                <h2>Notifications</h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p>Email Notifications</p>
-                    <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                  </div>
-                  <Button
-                    variant={notificationSettings.emailNotifications ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleNotificationToggle('emailNotifications')}
-                    className={notificationSettings.emailNotifications ? 'bg-primary text-primary-foreground' : ''}
-                  >
-                    {notificationSettings.emailNotifications ? 'On' : 'Off'}
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p>Product Updates</p>
-                    <p className="text-sm text-muted-foreground">New products from favorites</p>
-                  </div>
-                  <Button
-                    variant={notificationSettings.productUpdates ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleNotificationToggle('productUpdates')}
-                    className={notificationSettings.productUpdates ? 'bg-primary text-primary-foreground' : ''}
-                  >
-                    {notificationSettings.productUpdates ? 'On' : 'Off'}
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p>Merchant News</p>
-                    <p className="text-sm text-muted-foreground">Updates from stores you follow</p>
-                  </div>
-                  <Button
-                    variant={notificationSettings.merchantNews ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleNotificationToggle('merchantNews')}
-                    className={notificationSettings.merchantNews ? 'bg-primary text-primary-foreground' : ''}
-                  >
-                    {notificationSettings.merchantNews ? 'On' : 'Off'}
-                  </Button>
-                </div>
               </div>
             </Card>
           </motion.div>

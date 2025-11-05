@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Globe, Menu, X, User, LogOut, ShieldCheck, Store, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import logo from '../assets/dc93d49ca6f110dfea003149eea06295a54cf5b2.png';
+import defaultLogo from '../assets/dc93d49ca6f110dfea003149eea06295a54cf5b2.png';
 
 interface HeaderProps {
   onNavigate: (page: string) => void;
@@ -15,6 +15,36 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage }) => {
   const { language, toggleLanguage, t } = useLanguage();
   const { user, logout, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logo, setLogo] = useState(defaultLogo);
+
+  useEffect(() => {
+    const updateLogo = () => {
+      try {
+        const settings = localStorage.getItem('admin_site_settings');
+        if (settings) {
+          const parsed = JSON.parse(settings);
+          if (parsed.branding?.logo) {
+            setLogo(parsed.branding.logo);
+          } else {
+            setLogo(defaultLogo);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading logo:', error);
+        setLogo(defaultLogo);
+      }
+    };
+
+    updateLogo();
+    
+    window.addEventListener('storage', updateLogo);
+    const interval = setInterval(updateLogo, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', updateLogo);
+      clearInterval(interval);
+    };
+  }, []);
 
   const navItems = [
     { key: 'home', label: t('home') },

@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
 import { 
   Users, Store, Package, Shield, Menu, Home, ChevronRight, 
-  BarChart3, Bug, Palette, FileText, CreditCard, Bot, Layers
+  BarChart3, Bug, Palette, FileText, CreditCard, Bot, Layers, Mail
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { adminApi, merchantsApi, productsApi } from '../utils/api';
@@ -130,10 +130,17 @@ export const Admin: React.FC = () => {
         },
         { 
           id: 'payment-settings', 
-          label: 'Payments & Email', 
-          labelAr: 'المدفوعات والبريد', 
+          label: 'Payments & SMTP', 
+          labelAr: 'المدفوعات و SMTP', 
           icon: CreditCard,
           onClick: () => window.location.hash = 'admin-payment-settings'
+        },
+        { 
+          id: 'email-templates', 
+          label: 'Email Templates', 
+          labelAr: 'قوالب البريد', 
+          icon: Mail,
+          onClick: () => window.location.hash = 'admin-email-templates'
         },
         { 
           id: 'ai-settings', 
