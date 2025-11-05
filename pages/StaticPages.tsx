@@ -40,8 +40,25 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
   const defaultContent = {
     about: {
       icon: Info,
-      title: 'About Outfred',
-      sections: [
+      title: language === 'ar' ? 'من نحن - Outfred' : 'About Outfred',
+      sections: language === 'ar' ? [
+        {
+          heading: 'مهمتنا',
+          text: 'Outfred تحدث ثورة في اكتشاف الأزياء من خلال الجمع بين العلامات التجارية المحلية وتقنيات الذكاء الاصطناعي المتطورة. نحن نؤمن بأن الجميع يستحق الوصول إلى أزياء فريدة وعالية الجودة من علامات تجارية موثوقة.',
+        },
+        {
+          heading: 'ماذا نفعل',
+          text: 'نحن نربط عشاق الموضة بعلامات تجارية محلية مختارة بعناية من خلال البحث الذكي والتعرف على الصور وتوصيات الملابس المدعومة بالذكاء الاصطناعي. منصتنا تجعل من السهل اكتشاف واستكشاف والتسوق من أفضل تجار الأزياء المحليين.',
+        },
+        {
+          heading: 'التقنية لدينا',
+          text: 'باستخدام الذكاء الاصطناعي والتعلم الآلي المتقدم، نقدم بحثًا ذكيًا مع تصحيح تلقائي، ودعم متعدد اللغات، وقدرات البحث البصري، وتوليد الملابس الشخصية بناءً على تفضيلات أسلوبك.',
+        },
+        {
+          heading: 'للتجار',
+          text: 'نوفر لعلامات الأزياء المحلية منصة قوية للوصول إلى عملاء جدد، وعرض منتجاتهم، والاستفادة من التعرض المدعوم بالذكاء الاصطناعي من خلال أنظمة التوصيات الذكية لدينا.',
+        },
+      ] : [
         {
           heading: 'Our Mission',
           text: 'Outfred is revolutionizing fashion discovery by combining local brands with cutting-edge AI technology. We believe everyone deserves access to unique, quality fashion from brands they can trust.',
@@ -62,8 +79,29 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     },
     privacy: {
       icon: Shield,
-      title: 'Privacy Policy',
-      sections: [
+      title: language === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy',
+      sections: language === 'ar' ? [
+        {
+          heading: 'المعلومات التي نجمعها',
+          text: 'نقوم بجمع المعلومات التي تقدمها لنا مباشرة، مثل عند إنشاء حساب أو تقديم طلب تاجر أو الاتصال بنا. قد يشمل ذلك اسمك وعنوان بريدك الإلكتروني ورقم هاتفك ومعلومات الاتصال الأخرى.',
+        },
+        {
+          heading: 'كيف نستخدم معلوماتك',
+          text: 'نستخدم المعلومات التي نجمعها لتقديم خدماتنا وصيانتها وتحسينها، للتواصل معك، لمراقبة وتحليل الاتجاهات والاستخدام، ولتخصيص تجربتك على منصتنا.',
+        },
+        {
+          heading: 'أمن البيانات',
+          text: 'نتخذ تدابير معقولة للمساعدة في حماية معلوماتك الشخصية من الفقدان والسرقة وسوء الاستخدام والوصول غير المصرح به والإفصاح والتعديل والتدمير. ومع ذلك، لا يوجد نقل عبر الإنترنت آمن تمامًا أو خالٍ من الأخطاء.',
+        },
+        {
+          heading: 'حقوقك',
+          text: 'لديك الحق في الوصول إلى معلوماتك الشخصية أو تحديثها أو حذفها في أي وقت. يمكنك أيضًا إلغاء الاشتراك في تلقي الاتصالات الترويجية منا باتباع التعليمات في تلك الرسائل.',
+        },
+        {
+          heading: 'اتصل بنا',
+          text: 'إذا كان لديك أي أسئلة حول سياسة الخصوصية هذه، يرجى الاتصال بنا على privacy@outfred.com',
+        },
+      ] : [
         {
           heading: 'Information We Collect',
           text: 'We collect information you provide directly to us, such as when you create an account, submit a merchant application, or contact us. This may include your name, email address, phone number, and other contact information.',
@@ -88,8 +126,25 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
     },
     contact: {
       icon: Mail,
-      title: 'Contact Us',
-      sections: [
+      title: language === 'ar' ? 'تواصل معنا' : 'Contact Us',
+      sections: language === 'ar' ? [
+        {
+          heading: 'تواصل معنا',
+          text: 'لديك أسئلة أو اقتراحات أو ملاحظات؟ نحن نحب أن نسمع منك. فريقنا هنا للمساعدة ودائمًا حريص على تحسين تجربتك مع Outfred.',
+        },
+        {
+          heading: 'البريد الإلكتروني',
+          text: 'للاستفسارات العامة: hello@outfred.com\nلدعم التجار: merchants@outfred.com\nللدعم الفني: support@outfred.com',
+        },
+        {
+          heading: 'وسائل التواصل الاجتماعي',
+          text: 'تابعنا على قنواتنا الاجتماعية للحصول على آخر التحديثات واتجاهات الموضة وأخبار المنصة. تواصل معنا على Instagram و Twitter و Facebook @outfred',
+        },
+        {
+          heading: 'وقت الرد',
+          text: 'نرد عادةً على جميع الاستفسارات خلال 24-48 ساعة خلال أيام العمل. للأمور العاجلة المتعلقة بحساب التاجر الخاص بك أو المشكلات الفنية، يرجى وضع علامة على رسالتك كعاجلة.',
+        },
+      ] : [
         {
           heading: 'Get in Touch',
           text: 'Have questions, suggestions, or feedback? We\'d love to hear from you. Our team is here to help and always eager to improve your Outfred experience.',
@@ -215,37 +270,45 @@ export const StaticPages: React.FC<StaticPageProps> = ({ page }) => {
             className="mt-8"
           >
             <Card className="backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border-white/20 p-8">
-              <h3 className="text-2xl mb-6">Send Us a Message</h3>
+              <h3 className="text-2xl mb-6">
+                {language === 'ar' ? 'أرسل لنا رسالة' : 'Send Us a Message'}
+              </h3>
               <form className="space-y-4">
                 <div>
-                  <label className="block mb-2">Name</label>
+                  <label className="block mb-2">
+                    {language === 'ar' ? 'الاسم' : 'Name'}
+                  </label>
                   <input
                     type="text"
                     className="w-full px-4 py-3 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Your name"
+                    placeholder={language === 'ar' ? 'اسمك' : 'Your name'}
                   />
                 </div>
                 <div>
-                  <label className="block mb-2">Email</label>
+                  <label className="block mb-2">
+                    {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                  </label>
                   <input
                     type="email"
                     className="w-full px-4 py-3 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="you@example.com"
+                    placeholder={language === 'ar' ? 'you@example.com' : 'you@example.com'}
                   />
                 </div>
                 <div>
-                  <label className="block mb-2">Message</label>
+                  <label className="block mb-2">
+                    {language === 'ar' ? 'الرسالة' : 'Message'}
+                  </label>
                   <textarea
                     rows={5}
                     className="w-full px-4 py-3 rounded-lg bg-white/50 dark:bg-gray-800/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="How can we help you?"
+                    placeholder={language === 'ar' ? 'كيف يمكننا مساعدتك؟' : 'How can we help you?'}
                   />
                 </div>
                 <button
                   type="submit"
                   className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-pink-600 text-white hover:shadow-lg transition-all"
                 >
-                  Send Message
+                  {language === 'ar' ? 'إرسال الرسالة' : 'Send Message'}
                 </button>
               </form>
             </Card>
